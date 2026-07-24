@@ -1,0 +1,23 @@
+ja:
+  devise:
+    failure:
+      unauthenticated: "続行するにはログインしてください"
+      invalid: "メールアドレスまたはパスワードが正しくありません"
+      already_authenticated: "すでにログインしています"
+      not_found_in_database: "メールアドレスまたはパスワードが正しくありません"
+    sessions:
+      signed_in: "ログインしました"
+      signed_out: "ログアウトしました"
+    passwords:
+      send_instructions: "パスワード再設定の手順をメールで送信しました"
+      updated: "パスワードを変更しました"
+      updated_not_active: "パスワードを変更しました"
+      send_paranoid_instructions: "メールアドレスが登録されている場合、パスワード再設定の手順を送信しました"
+    registrations:
+      signed_up: "アカウント登録が完了しました"
+      updated: "アカウント情報を更新しました"
+  errors:
+    messages:
+      not_saved:
+        one: "エラーが発生したため保存できませんでした"
+        other: "%{count} 件のエラーが発生したため保存できませんでした"
