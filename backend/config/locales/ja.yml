@@ -1,0 +1,31 @@
+ja:
+  activerecord:
+    models:
+      user: ユーザー
+    attributes:
+      user:
+        email: メールアドレス
+        password: パスワード
+        password_confirmation: パスワード（確認）
+        current_password: 現在のパスワード
+        reset_password_token: リセットトークン
+    errors:
+      models:
+        user:
+          attributes:
+            email:
+              taken: はすでに使用されています
+              blank: を入力してください
+              invalid: は不正な値です
+            password:
+              blank: を入力してください
+              too_short: は%{count}文字以上で入力してください
+            password_confirmation:
+              confirmation: とパスワードの入力が一致しません
+  errors:
+    messages:
+      blank: を入力してください
+      taken: はすでに使用されています
+      invalid: は不正な値です
+      confirmation: と%{attribute}の入力が一致しません
+      too_short: は%{count}文字以上で入力してください
