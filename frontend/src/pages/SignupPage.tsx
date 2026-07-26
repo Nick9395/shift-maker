@@ -7,6 +7,7 @@ import { AuthLayout } from "../components/AuthLayout";
 export function SignupPage() {
   const { signup } = useAuth();
   const navigate = useNavigate();
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
@@ -18,7 +19,7 @@ export function SignupPage() {
     setError(null);
     setSubmitting(true);
     try {
-      await signup(email, password, passwordConfirmation);
+      await signup(name, email, password, passwordConfirmation);
       navigate("/home", { replace: true });
     } catch (err) {
       if (err instanceof ApiError) {
@@ -40,6 +41,18 @@ export function SignupPage() {
       footer={<Link to="/login">ログインへ</Link>}
     >
       <form className="auth-form" onSubmit={handleSubmit}>
+        <label>
+          ユーザー名
+          <input
+            type="text"
+            autoComplete="nickname"
+            required
+            minLength={1}
+            maxLength={12}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </label>
         <label>
           メールアドレス
           <input

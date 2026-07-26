@@ -19,7 +19,9 @@ module Api
           get api_v1_me_path, headers: { "Authorization" => token }, as: :json
           assert_response :success
           body = JSON.parse(response.body)
+          assert_equal @user.name, body.dig("user", "name")
           assert_equal @user.email, body.dig("user", "email")
+
         end
 
         test "未認証では取得できない" do

@@ -2,6 +2,7 @@ import { apiRequest } from "./client";
 import type { MessageResponse, UserResponse } from "../types/auth";
 
 export async function signup(params: {
+  name: string;
   email: string;
   password: string;
   passwordConfirmation: string;
@@ -12,6 +13,7 @@ export async function signup(params: {
       method: "POST",
       body: {
         user: {
+          name: params.name,
           email: params.email,
           password: params.password,
           password_confirmation: params.passwordConfirmation,
