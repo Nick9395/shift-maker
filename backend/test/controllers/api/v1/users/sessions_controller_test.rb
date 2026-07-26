@@ -18,6 +18,7 @@ module Api
           assert_response :success
           assert response.headers["Authorization"].present?
           body = JSON.parse(response.body)
+          assert_equal @user.name, body.dig("user", "name")
           assert_equal @user.email, body.dig("user", "email")
         end
 

@@ -2,15 +2,19 @@ import { useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ApiError } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
+import { getLastLoginEmail } from "../auth/lastLoginEmail";
 import { AuthLayout } from "../components/AuthLayout";
 
 export function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const notice =
-    (location.state as { notice?: string } | null)?.notice ?? null;
-  const [email, setEmail] = useState("");
+  const locationState =
+    (location.state as { notice?: string; email?: string } | null) ?? null;
+  const notice = locationState?.notice ?? null;
+  const [email, setEmail] = useState(
+    () => locationState?.email || getLastLoginEmail(),
+  );
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);

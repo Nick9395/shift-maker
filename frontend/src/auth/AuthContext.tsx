@@ -9,6 +9,7 @@ import {
 } from "react";
 import * as authApi from "../api/auth";
 import type { AuthUser } from "../types/auth";
+import { setLastLoginEmail } from "./lastLoginEmail";
 import { clearToken, getToken, setToken } from "./token";
 
 type AuthContextValue = {
@@ -17,6 +18,7 @@ type AuthContextValue = {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (
+    name: string,
     email: string,
     password: string,
     passwordConfirmation: string,
@@ -63,8 +65,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signup = useCallback(
-    async (email: string, password: string, passwordConfirmation: string) => {
+    async (
+      name: string,
+      email: string,
+      password: string,
+      passwordConfirmation: string,
+    ) => {
       const result = await authApi.signup({
+        name,
         email,
         password,
         passwordConfirmation,
@@ -77,6 +85,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const logout = useCallback(async () => {
+    // ProtectedRoute が state なしで /login へ飛ばす競合に備え、先に退避する
+    if (user?.email) {
+      setLastLoginEmail(user.email);
+    }
+
     const current = getToken();
     if (current) {
       try {
@@ -88,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearToken();
     setTokenState(null);
     setUser(null);
-  }, []);
+  }, [user]);
 
   const value = useMemo(
     () => ({

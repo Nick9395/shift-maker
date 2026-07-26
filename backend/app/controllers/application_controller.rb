@@ -6,16 +6,18 @@ class ApplicationController < ActionController::API
   private
 
   def configure_permitted_parameters
-    devise_parameter_sanitizer.permit(:sign_up, keys: %i[email password password_confirmation])
-    devise_parameter_sanitizer.permit(:account_update, keys: %i[email password password_confirmation])
+    devise_parameter_sanitizer.permit(:sign_up, keys: %i[name email password password_confirmation])
+    devise_parameter_sanitizer.permit(:account_update, keys: %i[name email password password_confirmation])
   end
 
   def render_user(user, status: :ok)
     render json: {
       user: {
         id: user.id,
+        name: user.name,
         email: user.email
       }
     }, status: status
   end
+
 end
