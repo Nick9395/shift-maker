@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:3000";
+import { API_BASE_URL } from "../config";
 
 export type ApiErrorBody = {
   message?: string;
