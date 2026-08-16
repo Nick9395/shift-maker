@@ -1,6 +1,8 @@
-import { useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useState, type FormEvent, type KeyboardEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { loadShiftTypes, saveShiftTypes } from "../lib/shiftTypeStore";
+import { loadShiftTypesForUser, replaceShiftTypes } from "../api/shiftTypes";
+import { ApiError } from "../api/client";
+import { useAuth } from "../auth/AuthContext";
 import { AppShell } from "../components/AppShell";
 import {
   createEmptyShiftType,
@@ -38,10 +40,9 @@ function toStoredTypes(rows: ShiftTypeMaster[]): ShiftTypeMaster[] {
     }));
 }
 
-function initialRows(): ShiftTypeMaster[] {
-  const saved = loadShiftTypes();
-  if (saved.length > 0) {
-    return saved.map((row) => ({ ...row }));
+function initialRows(types: ShiftTypeMaster[]): ShiftTypeMaster[] {
+  if (types.length > 0) {
+    return types.map((row) => ({ ...row }));
   }
   return [createEmptyShiftType()];
 }
@@ -92,8 +93,41 @@ function IconColorField({
 /** シフトの種類を登録する */
 export function ShiftTypesSettingsPage() {
   const navigate = useNavigate();
-  const [rows, setRows] = useState<ShiftTypeMaster[]>(initialRows);
+  const { token } = useAuth();
+  const [rows, setRows] = useState<ShiftTypeMaster[]>(() => [
+    createEmptyShiftType(),
+  ]);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    loadShiftTypesForUser(token)
+      .then((types) => {
+        if (!cancelled) setRows(initialRows(types));
+      })
+      .catch((caught: unknown) => {
+        if (cancelled) return;
+        setError(
+          caught instanceof ApiError
+            ? caught.message
+            : "シフト種別を読み込めませんでした",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
 
   const filledCount = rows.filter((row) => !isBlankRow(row)).length;
 
@@ -125,7 +159,7 @@ export function ShiftTypesSettingsPage() {
     }
   }
 
-  function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
 
@@ -149,18 +183,37 @@ export function ShiftTypesSettingsPage() {
       setError(`シフト種別は${MAX_SHIFT_TYPES}件まで登録できます`);
       return;
     }
+    if (!token) {
+      setError("ログインが必要です");
+      return;
+    }
 
-    saveShiftTypes(stored);
-    navigate("/settings");
+    setSaving(true);
+    try {
+      await replaceShiftTypes(token, stored);
+      navigate("/settings");
+    } catch (caught: unknown) {
+      setError(
+        caught instanceof ApiError
+          ? caught.message
+          : "シフト種別の保存に失敗しました",
+      );
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
     <AppShell>
       <div className="shift-form-page shift-form-page--wide shift-form-page--types">
         <h2>シフトの種類を登録する</h2>
+        {loading ? <p className="auth-muted">読み込み中...</p> : null}
+        {loading ? null : (
         <form
           className="shift-staff-form"
-          onSubmit={handleSubmit}
+          onSubmit={(event) => {
+            void handleSubmit(event);
+          }}
           onKeyDown={handleKeyDown}
           autoComplete="off"
           noValidate
@@ -297,18 +350,28 @@ export function ShiftTypesSettingsPage() {
           {error ? <p className="auth-error">{error}</p> : null}
 
           <div className="shift-form__actions">
-            <button type="submit" className="btn-primary">
-              保存してもどる
+            <button type="submit" className="btn-primary" disabled={saving}>
+              {saving ? "保存中..." : "保存してもどる"}
             </button>
             <button
               type="button"
               className="btn-secondary"
               onClick={() => navigate("/settings")}
+              disabled={saving}
             >
               キャンセル
             </button>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => navigate("/shifts")}
+              disabled={saving}
+            >
+              シフト一覧へ
+            </button>
           </div>
         </form>
+        )}
       </div>
     </AppShell>
   );

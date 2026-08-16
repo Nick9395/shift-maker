@@ -30,7 +30,9 @@ export function AppShell({ children }: AppShellProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const isSheetPage = location.pathname === "/shifts/new/sheet";
+  const isSheetPage =
+    location.pathname === "/shifts/new/sheet" ||
+    /^\/shifts\/\d+\/sheet$/.test(location.pathname);
 
   async function handleLogout() {
     await logout();
@@ -62,7 +64,13 @@ export function AppShell({ children }: AppShellProps) {
         </div>
         {sidebarOpen ? (
           <nav>
-            <span className="nav-disabled">シフト一覧</span>
+            <NavLink
+              to="/shifts"
+              end
+              className={({ isActive }) => (isActive ? "is-active" : undefined)}
+            >
+              シフト一覧
+            </NavLink>
             <NavLink
               to="/shifts/new"
               className={({ isActive }) => (isActive ? "is-active" : undefined)}

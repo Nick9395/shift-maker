@@ -1,5 +1,6 @@
 import { useState, type FormEvent, type KeyboardEvent } from "react";
 import { Navigate, useNavigate, useOutletContext } from "react-router-dom";
+import { useShiftWizardPaths } from "../lib/shiftWizard";
 import { createEmptySheet, MAX_SHIFT_STAFF, type ShiftStaffDraft } from "../types/shift";
 import type { NewShiftWizardContext } from "./NewShiftLayout";
 
@@ -45,13 +46,14 @@ function initialRows(staff: ShiftStaffDraft[] | undefined): ShiftStaffDraft[] {
 export function NewShiftStaffPage() {
   const { draft, setDraft } = useOutletContext<NewShiftWizardContext>();
   const navigate = useNavigate();
+  const paths = useShiftWizardPaths();
   const [rows, setRows] = useState<ShiftStaffDraft[]>(() =>
     initialRows(draft?.staff),
   );
   const [error, setError] = useState<string | null>(null);
 
   if (!draft) {
-    return <Navigate to="/shifts/new" replace />;
+    return <Navigate to={paths.root} replace />;
   }
 
   const currentDraft = draft;
@@ -95,7 +97,7 @@ export function NewShiftStaffPage() {
 
   function handleBack() {
     persistStaff(rows);
-    navigate("/shifts/new");
+    navigate(paths.root);
   }
 
   function handleSubmit(event: FormEvent) {
@@ -125,7 +127,7 @@ export function NewShiftStaffPage() {
     }
 
     persistStaff(rows);
-    navigate("/shifts/new/duties");
+    navigate(paths.duties);
   }
 
   return (

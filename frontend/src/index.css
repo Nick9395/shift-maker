@@ -523,6 +523,9 @@ select {
 .app-shell__content--sheet {
   padding: 0;
   background-color: var(--bg);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 @media (max-width: 768px) {
@@ -594,6 +597,76 @@ select {
   background: #fff;
   color: var(--accent);
   text-decoration: none;
+}
+
+/* ---------- シフト一覧 ---------- */
+
+.shift-list-page {
+  width: min(720px, 100%);
+}
+
+.shift-list-page h2 {
+  margin: 0 0 18px;
+  font-size: 1.2rem;
+}
+
+.shift-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.shift-list__item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 18px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--ink);
+  text-decoration: none;
+  box-shadow: 0 8px 20px rgba(60, 40, 20, 0.08);
+}
+
+.shift-list__item:hover {
+  background: #fff;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.shift-list__name {
+  font-weight: 700;
+}
+
+.shift-list__meta {
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+
+.shift-list__item:hover .shift-list__meta {
+  color: var(--accent);
+}
+
+.shift-list-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.shift-list-empty__action {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.shift-list-empty__action:hover {
+  text-decoration: none;
+  color: #fff;
 }
 
 /* ---------- 新規シフト作成 ---------- */
@@ -681,6 +754,11 @@ select {
 
 .btn-primary:hover {
   background: var(--accent-hover);
+}
+
+.btn-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .btn-secondary {
@@ -1022,6 +1100,7 @@ select {
   width: max-content;
   min-width: 100%;
   min-height: 100%;
+  flex: 1;
   display: flex;
   flex-direction: column;
   background-color: var(--bg);
@@ -1061,6 +1140,7 @@ select {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  flex: 1;
 }
 
 .shift-sheet-heading {
@@ -1173,6 +1253,18 @@ select {
   padding: 0;
 }
 
+.shift-palette__eraser {
+  min-width: 58px;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+}
+
+.shift-palette__eraser svg {
+  width: 22px;
+  height: 22px;
+}
+
 .shift-palette__lock svg {
   width: 16px;
   height: 16px;
@@ -1251,7 +1343,7 @@ select {
 }
 
 .btn-sheet-lock {
-  min-width: 10.5rem;
+  min-width: 8.5rem;
 }
 
 .btn-sheet-action {

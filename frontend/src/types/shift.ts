@@ -29,7 +29,10 @@ export const SHIFT_TYPE_CATEGORIES = [
   "年休",
   "出張",
   "時間休",
-  "出勤",
+  "早朝勤務",
+  "日中勤務",
+  "夕方勤務",
+  "夜間勤務",
 ] as const;
 
 export type ShiftTypeCategory = (typeof SHIFT_TYPE_CATEGORIES)[number];
@@ -148,6 +151,8 @@ export function sheetCellKey(staffId: string, isoDate: string): string {
 
 /** 新規シフト作成ウィザードの入力途中データ */
 export type NewShiftDraft = {
+  /** 保存済みならサーバーの勤務表ID */
+  serverId?: number;
   name: string;
   startDate: string;
   endDate: string;

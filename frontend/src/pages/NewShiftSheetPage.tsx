@@ -9,7 +9,11 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import { Navigate, useNavigate, useOutletContext } from "react-router-dom";
-import { brushCursor } from "../lib/brushCursor";
+import { createShift, updateShift } from "../api/shifts";
+import { ApiError } from "../api/client";
+import { useAuth } from "../auth/AuthContext";
+import { loadShiftTypesForUser } from "../api/shiftTypes";
+import { brushCursor, eraserCursor } from "../lib/brushCursor";
 import {
   eachIsoDate,
   formatJaDate,
@@ -18,6 +22,7 @@ import {
   jaWeekday,
 } from "../lib/date";
 import { loadShiftTypes } from "../lib/shiftTypeStore";
+import { useShiftWizardPaths } from "../lib/shiftWizard";
 import {
   createEmptySheet,
   isValidShiftPlan,
@@ -32,6 +37,7 @@ import {
 import type { NewShiftWizardContext } from "./NewShiftLayout";
 
 const SUMMARY_COLUMNS = ["出勤", "公休", "年休", "時間休", "特休"] as const;
+const ERASER_TOOL_ID = "__eraser__";
 
 type InteractionMode = "idle" | "paint" | "pan";
 
@@ -87,6 +93,17 @@ function LockIcon() {
       <path
         fill="currentColor"
         d="M17 8h-1V6a4 4 0 1 0-8 0v2H7a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2Zm-7-2a2 2 0 1 1 4 0v2h-4Zm7 12H9v-8h8Z"
+      />
+    </svg>
+  );
+}
+
+function EraserIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M15.9 3.5 20.5 8a2 2 0 0 1 0 2.8l-8.2 8.2H7.5L2.9 14.2a2 2 0 0 1 0-2.8L12.6 2a2 2 0 0 1 2.8 0Zm-2.1 1.4L5 13.7 8.3 17h2.8l8.2-8.2-5.5-5.5ZM4 20h16v2H4v-2Z"
       />
     </svg>
   );
@@ -182,11 +199,29 @@ function paintCellFromPoint(clientX: number, clientY: number): {
   return readPaintCell(el);
 }
 
+function mergeShiftTypes(
+  primary: ShiftTypeMaster[],
+  extra: ShiftTypeMaster[],
+): ShiftTypeMaster[] {
+  const merged = [...primary];
+  const ids = new Set(primary.map((type) => type.id));
+  for (const type of extra) {
+    if (ids.has(type.id)) continue;
+    merged.push(type);
+    ids.add(type.id);
+  }
+  return merged.slice(0, MAX_SHIFT_TYPES);
+}
+
 /** シフト表作成画面 */
 export function NewShiftSheetPage() {
-  const { draft, setDraft } = useOutletContext<NewShiftWizardContext>();
+  const { draft, setDraft, cancelPath = "/home", paletteTypes } =
+    useOutletContext<NewShiftWizardContext>();
+  const { token } = useAuth();
   const navigate = useNavigate();
-  const [isSaved, setIsSaved] = useState(false);
+  const paths = useShiftWizardPaths();
+  const [isSaved, setIsSaved] = useState(() => Boolean(draft?.serverId));
+  const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null);
@@ -220,12 +255,33 @@ export function NewShiftSheetPage() {
   );
 
   useEffect(() => {
-    const types = loadShiftTypes().slice(0, MAX_SHIFT_TYPES);
-    setVisibleShiftTypes(types);
-    setSelectedTypeId((current) =>
-      current && types.some((type) => type.id === current) ? current : null,
-    );
-  }, []);
+    let cancelled = false;
+
+    async function loadTypes() {
+      let master: ShiftTypeMaster[] = loadShiftTypes().slice(0, MAX_SHIFT_TYPES);
+      if (token) {
+        try {
+          master = await loadShiftTypesForUser(token);
+        } catch {
+          // DBを読めないときは端末に残っている種別で描画する
+        }
+      }
+      if (cancelled) return;
+      const types = mergeShiftTypes(master, paletteTypes ?? []);
+      setVisibleShiftTypes(types);
+      setSelectedTypeId((current) => {
+        if (current === ERASER_TOOL_ID) return current;
+        return current && types.some((type) => type.id === current)
+          ? current
+          : null;
+      });
+    }
+
+    void loadTypes();
+    return () => {
+      cancelled = true;
+    };
+  }, [paletteTypes, token]);
 
   useEffect(() => {
     if (!confirmCancel) return;
@@ -268,11 +324,11 @@ export function NewShiftSheetPage() {
   }, [draft, visibleShiftTypes]);
 
   if (!draft) {
-    return <Navigate to="/shifts/new" replace />;
+    return <Navigate to={paths.root} replace />;
   }
 
   if (draft.staff.length === 0) {
-    return <Navigate to="/shifts/new/staff" replace />;
+    return <Navigate to={paths.staff} replace />;
   }
 
   const currentDraft = draft;
@@ -284,12 +340,15 @@ export function NewShiftSheetPage() {
   const periodSameMonth =
     formatJaYearMonth(currentDraft.startDate) ===
     formatJaYearMonth(currentDraft.endDate);
-  const selectedType = selectedTypeId
+  const isEraser = selectedTypeId === ERASER_TOOL_ID;
+  const selectedType = selectedTypeId && !isEraser
     ? shiftTypeById(visibleShiftTypes, selectedTypeId)
     : undefined;
-  const brushCursorCss = selectedType
-    ? brushCursor(resolveShiftTypeColor(selectedType.iconColor))
-    : undefined;
+  const brushCursorCss = isEraser
+    ? eraserCursor()
+    : selectedType
+      ? brushCursor(resolveShiftTypeColor(selectedType.iconColor))
+      : undefined;
 
   function updateSheet(patch: Partial<ShiftSheetDraft>) {
     const current = draftRef.current;
@@ -301,7 +360,7 @@ export function NewShiftSheetPage() {
     });
   }
 
-  function handleSave() {
+  async function handleSave() {
     for (const iso of dates) {
       if (!isValidShiftPlan(plans[iso] ?? "")) {
         setSaveError(
@@ -310,8 +369,29 @@ export function NewShiftSheetPage() {
         return;
       }
     }
+    if (!token) {
+      setSaveError("ログインが必要です");
+      return;
+    }
+
+    const current = draftRef.current ?? currentDraft;
+    setSaving(true);
     setSaveError(null);
-    setIsSaved(true);
+    try {
+      const saved = current.serverId
+        ? await updateShift(token, current.serverId, current, visibleShiftTypes)
+        : await createShift(token, current, visibleShiftTypes);
+      setDraft({ ...current, serverId: saved.id });
+      setIsSaved(true);
+    } catch (caught: unknown) {
+      setSaveError(
+        caught instanceof ApiError
+          ? caught.message
+          : "シフト表の保存に失敗しました",
+      );
+    } finally {
+      setSaving(false);
+    }
   }
 
   function handleCancel() {
@@ -319,12 +399,12 @@ export function NewShiftSheetPage() {
       setConfirmCancel(true);
       return;
     }
-    navigate("/home");
+    navigate(cancelPath);
   }
 
   function confirmDiscardAndLeave() {
     setConfirmCancel(false);
-    navigate("/home");
+    navigate(cancelPath);
   }
 
   function isTypeLocked(typeId: string): boolean {
@@ -388,6 +468,16 @@ export function NewShiftSheetPage() {
     const key = sheetCellKey(staffId, isoDate);
     const existing = cellsRef.current[key];
     if (existing && lockedIdsRef.current.includes(existing)) return;
+
+    if (typeId === ERASER_TOOL_ID) {
+      if (!existing) return;
+      const nextCells = { ...cellsRef.current };
+      delete nextCells[key];
+      cellsRef.current = nextCells;
+      updateSheet({ cells: nextCells });
+      return;
+    }
+
     if (existing === typeId) return;
 
     const nextCells = { ...cellsRef.current, [key]: typeId };
@@ -485,7 +575,7 @@ export function NewShiftSheetPage() {
       ref={pageRef}
       className={[
         "shift-sheet-page",
-        selectedType ? "has-brush" : "",
+        selectedType || isEraser ? "has-brush" : "",
       ]
         .filter(Boolean)
         .join(" ")}
@@ -503,9 +593,28 @@ export function NewShiftSheetPage() {
     >
       <header ref={stickyHeaderRef} className="shift-sheet-sticky">
         <div className="shift-sheet-sticky__inner">
-        {visibleShiftTypes.length > 0 ? (
-          <div className="shift-palette" aria-label="シフト種別">
-            {visibleShiftTypes.map((type) => {
+        <div className="shift-palette" aria-label="シフト種別">
+          <div
+            className={
+              isEraser
+                ? "shift-palette__item is-selected"
+                : "shift-palette__item"
+            }
+          >
+            <button
+              type="button"
+              className="shift-palette__btn shift-palette__eraser"
+              aria-pressed={isEraser}
+              aria-label="消しゴム 塗ったマスを消す"
+              onClick={() => setSelectedTypeId(ERASER_TOOL_ID)}
+              onMouseEnter={(event) => showTooltip("消しゴム", event)}
+              onMouseMove={(event) => showTooltip("消しゴム", event)}
+              onMouseLeave={hideTooltip}
+            >
+              <EraserIcon />
+            </button>
+          </div>
+          {visibleShiftTypes.map((type) => {
               const locked = isTypeLocked(type.id);
               const selected = selectedTypeId === type.id;
               return (
@@ -554,12 +663,12 @@ export function NewShiftSheetPage() {
                 </div>
               );
             })}
-          </div>
-        ) : (
+        </div>
+        {visibleShiftTypes.length === 0 ? (
           <p className="shift-palette-empty">
             設定画面からシフト種別を登録してください。登録した種別のボタンが出現します。
           </p>
-        )}
+        ) : null}
 
         <div className="shift-sheet-toolbar">
           <div className="shift-sheet-toolbar__lock">
@@ -573,7 +682,7 @@ export function NewShiftSheetPage() {
               aria-pressed={allLocked}
               onClick={() => updateSheet({ allLocked: true })}
             >
-              全シフトロック
+              全ロック
             </button>
             <button
               type="button"
@@ -582,16 +691,19 @@ export function NewShiftSheetPage() {
                 updateSheet({ allLocked: false, lockedShiftTypeIds: [] })
               }
             >
-              全シフトロック解除
+              全ロック解除
             </button>
           </div>
           <div className="shift-sheet-toolbar__actions">
             <button
               type="button"
               className="btn-primary btn-sheet-action"
-              onClick={handleSave}
+              onClick={() => {
+                void handleSave();
+              }}
+              disabled={saving}
             >
-              保存
+              {saving ? "保存中..." : "保存"}
             </button>
             <button type="button" className="btn-secondary btn-sheet-action">
               自動作成
@@ -612,7 +724,7 @@ export function NewShiftSheetPage() {
             <button
               type="button"
               className="btn-secondary btn-sheet-action"
-              onClick={() => navigate("/shifts/new/duties")}
+              onClick={() => navigate(paths.duties)}
             >
               前へもどる
             </button>
