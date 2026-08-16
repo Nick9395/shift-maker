@@ -20,6 +20,9 @@ Rails.application.routes.draw do
       get "health/index"
       get "health", to: "health#index"
       get "me", to: "users/profiles#show"
+      get "shift_types", to: "shift_types#index"
+      put "shift_types", to: "shift_types#update"
+      resources :shifts, only: %i[index show create update]
     end
   end
 

@@ -1,5 +1,6 @@
 import { useState, type FormEvent, type KeyboardEvent } from "react";
 import { Navigate, useNavigate, useOutletContext } from "react-router-dom";
+import { useShiftWizardPaths } from "../lib/shiftWizard";
 import { createEmptySheet, type DutyCountDraft } from "../types/shift";
 import type { NewShiftWizardContext } from "./NewShiftLayout";
 
@@ -32,16 +33,17 @@ function toBooleanSelect(value: boolean): "yes" | "no" {
 export function NewShiftDutiesPage() {
   const { draft, setDraft } = useOutletContext<NewShiftWizardContext>();
   const navigate = useNavigate();
+  const paths = useShiftWizardPaths();
   const [rows, setRows] = useState<DutyCountDraft[]>(() =>
     initialRows(draft?.dutyCounts),
   );
 
   if (!draft) {
-    return <Navigate to="/shifts/new" replace />;
+    return <Navigate to={paths.root} replace />;
   }
 
   if (draft.staff.length === 0) {
-    return <Navigate to="/shifts/new/staff" replace />;
+    return <Navigate to={paths.staff} replace />;
   }
 
   const currentDraft = draft;
@@ -83,13 +85,13 @@ export function NewShiftDutiesPage() {
 
   function handleBack() {
     persistDutyCounts(rows);
-    navigate("/shifts/new/staff");
+    navigate(paths.staff);
   }
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
     persistDutyCounts(rows);
-    navigate("/shifts/new/sheet");
+    navigate(paths.sheet);
   }
 
   return (

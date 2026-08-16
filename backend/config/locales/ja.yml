@@ -2,7 +2,21 @@ ja:
   activerecord:
     models:
       user: ユーザー
+      shift: 勤務表
+      shift_staff: 職員
+      shift_plan: 予定
+      shift_type: シフト種別
     attributes:
+      shift:
+        name: シフト名
+        start_date: 開始年月日
+        end_date: 終了年月日
+        public_holiday: 公休数
+      shift_type:
+        name: シフト名
+        display_name: 表示
+      shift_plan:
+        body: 予定
       user:
         email: メールアドレス
         password: パスワード

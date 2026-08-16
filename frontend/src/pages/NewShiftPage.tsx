@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { DatePicker } from "../components/DatePicker";
 import { inclusiveDayCount } from "../lib/date";
+import { useShiftWizardPaths } from "../lib/shiftWizard";
 import { createEmptySheet } from "../types/shift";
 import type { NewShiftWizardContext } from "./NewShiftLayout";
 
@@ -14,8 +15,10 @@ function parseHolidayCount(raw: string): number | null {
 
 /** 新規シフト作成の初期設定（名称・期間・公休数） */
 export function NewShiftPage() {
-  const { draft, setDraft } = useOutletContext<NewShiftWizardContext>();
+  const { draft, setDraft, cancelPath = "/home" } =
+    useOutletContext<NewShiftWizardContext>();
   const navigate = useNavigate();
+  const { staff: staffPath, isEdit } = useShiftWizardPaths();
   const [name, setName] = useState(draft?.name ?? "");
   const [startDate, setStartDate] = useState(draft?.startDate ?? "");
   const [endDate, setEndDate] = useState(draft?.endDate ?? "");
@@ -66,13 +69,14 @@ export function NewShiftPage() {
       staff: draft?.staff ?? [],
       dutyCounts: draft?.dutyCounts ?? [],
       sheet: draft?.sheet ?? createEmptySheet(),
+      serverId: draft?.serverId,
     });
-    navigate("/shifts/new/staff");
+    navigate(staffPath);
   }
 
   return (
     <div className="shift-form-page">
-      <h2>新規シフト作成</h2>
+      <h2>{isEdit ? "シフトの初期設定" : "新規シフト作成"}</h2>
       <form className="shift-form" onSubmit={handleSubmit} noValidate>
         <label>
           シフト名
@@ -126,7 +130,7 @@ export function NewShiftPage() {
           <button
             type="button"
             className="btn-secondary"
-            onClick={() => navigate("/home")}
+            onClick={() => navigate(cancelPath)}
           >
             キャンセル
           </button>

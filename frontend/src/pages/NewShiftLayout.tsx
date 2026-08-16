@@ -1,11 +1,13 @@
 import { useCallback, useRef, useState } from "react";
 import { Outlet } from "react-router-dom";
 import { AppShell } from "../components/AppShell";
-import type { NewShiftDraft } from "../types/shift";
+import type { NewShiftDraft, ShiftTypeMaster } from "../types/shift";
 
 export type NewShiftWizardContext = {
   draft: NewShiftDraft | null;
   setDraft: (draft: NewShiftDraft) => void;
+  cancelPath?: string;
+  paletteTypes?: ShiftTypeMaster[] | null;
 };
 
 /** 新規シフト作成ウィザードの親（入力値を画面間で保持する） */
@@ -25,6 +27,7 @@ export function NewShiftLayout() {
           {
             draft: draftRef.current ?? draft,
             setDraft,
+            cancelPath: "/home",
           } satisfies NewShiftWizardContext
         }
       />
