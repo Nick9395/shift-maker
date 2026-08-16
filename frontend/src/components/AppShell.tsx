@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 
 function SidebarToggleIcon({ open }: { open: boolean }) {
@@ -28,7 +28,9 @@ type AppShellProps = {
 export function AppShell({ children }: AppShellProps) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const isSheetPage = location.pathname === "/shifts/new/sheet";
 
   async function handleLogout() {
     await logout();
@@ -67,7 +69,12 @@ export function AppShell({ children }: AppShellProps) {
             >
               新規シフト作成
             </NavLink>
-            <span className="nav-disabled">設定</span>
+            <NavLink
+              to="/settings"
+              className={({ isActive }) => (isActive ? "is-active" : undefined)}
+            >
+              設定
+            </NavLink>
             <button
               type="button"
               className="app-shell__nav-item"
@@ -79,10 +86,20 @@ export function AppShell({ children }: AppShellProps) {
         ) : null}
       </aside>
       <main className="app-shell__main">
-        <header className="app-shell__header">
-          <h1>{user?.name || "ユーザー"}さんのページ</h1>
-        </header>
-        <section className="app-shell__content">{children}</section>
+        {isSheetPage ? null : (
+          <header className="app-shell__header">
+            <h1>{user?.name || "ユーザー"}さんのページ</h1>
+          </header>
+        )}
+        <section
+          className={
+            isSheetPage
+              ? "app-shell__content app-shell__content--sheet"
+              : "app-shell__content"
+          }
+        >
+          {children}
+        </section>
       </main>
     </div>
   );
