@@ -11,6 +11,9 @@ import { NewShiftPage } from "./pages/NewShiftPage";
 import { NewShiftSheetPage } from "./pages/NewShiftSheetPage";
 import { NewShiftStaffPage } from "./pages/NewShiftStaffPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
+import { SettingsPage } from "./pages/SettingsPage";
+import { SettingsPlaceholderPage } from "./pages/SettingsPlaceholderPage";
+import { ShiftTypesSettingsPage } from "./pages/ShiftTypesSettingsPage";
 import { SignupPage } from "./pages/SignupPage";
 import { TermsPage } from "./pages/TermsPage";
 import { TopPage } from "./pages/TopPage";
@@ -33,6 +36,23 @@ function App() {
 
           <Route element={<ProtectedRoute />}>
             <Route path="/home" element={<HomePage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route
+              path="/settings/duties"
+              element={<SettingsPlaceholderPage title="職務を登録する" />}
+            />
+            <Route
+              path="/settings/staff"
+              element={<SettingsPlaceholderPage title="職員を登録する" />}
+            />
+            <Route
+              path="/settings/shift-types"
+              element={<ShiftTypesSettingsPage />}
+            />
+            <Route
+              path="/settings/account"
+              element={<SettingsPlaceholderPage title="アカウント設定" />}
+            />
             <Route path="/shifts/new" element={<NewShiftLayout />}>
               <Route index element={<NewShiftPage />} />
               <Route path="staff" element={<NewShiftStaffPage />} />

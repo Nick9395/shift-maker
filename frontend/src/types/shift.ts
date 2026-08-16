@@ -21,16 +21,109 @@ export type DutyCountDraft = {
 };
 
 /** シフト種別マスタの上限 */
-export const MAX_SHIFT_TYPES = 20;
+export const MAX_SHIFT_TYPES = 30;
 
-/** シフト種別（設定画面のマスタ。未実装のため空） */
+export const SHIFT_TYPE_CATEGORIES = [
+  "公休",
+  "特休",
+  "年休",
+  "出張",
+  "時間休",
+  "出勤",
+] as const;
+
+export type ShiftTypeCategory = (typeof SHIFT_TYPE_CATEGORIES)[number];
+
+export const SHIFT_TYPE_COLORS = ["赤", "ピンク", "紫", "緑", "オレンジ"] as const;
+
+export type ShiftTypeColor = (typeof SHIFT_TYPE_COLORS)[number];
+
+export const SHIFT_TYPE_COLOR_HEX: Record<ShiftTypeColor, string> = {
+  赤: "#c62828",
+  ピンク: "#d4537e",
+  紫: "#6a4c9c",
+  緑: "#2e7d4f",
+  オレンジ: "#c45c26",
+};
+
+const HEX_COLOR_PATTERN = /^#([0-9a-fA-F]{6})$/;
+
+/** 保存済みの色名またはHEXを、描画用のHEXに変換する */
+export function resolveShiftTypeColor(iconColor: string): string | undefined {
+  if (!iconColor) return undefined;
+  if (iconColor in SHIFT_TYPE_COLOR_HEX) {
+    return SHIFT_TYPE_COLOR_HEX[iconColor as ShiftTypeColor];
+  }
+  if (HEX_COLOR_PATTERN.test(iconColor)) {
+    return iconColor.toLowerCase();
+  }
+  return undefined;
+}
+
+/** 表示欄の最大幅（半角1・全角2でカウント） */
+export const MAX_SHIFT_TYPE_ABBR_WIDTH = 4;
+
+function isHalfWidthChar(char: string): boolean {
+  const code = char.codePointAt(0) ?? 0;
+  if (code <= 0x7f) return true;
+  if (code >= 0xff61 && code <= 0xff9f) return true;
+  return false;
+}
+
+function charDisplayWidth(char: string): number {
+  return isHalfWidthChar(char) ? 1 : 2;
+}
+
+/** 半角1・全角2で数えた表示幅 */
+export function textDisplayWidth(value: string): number {
+  let width = 0;
+  for (const char of value) {
+    width += charDisplayWidth(char);
+  }
+  return width;
+}
+
+/** 表示文字列の幅（半角4文字＝全角2文字） */
+export function shiftTypeAbbrWidth(value: string): number {
+  return textDisplayWidth(value);
+}
+
+export function isValidShiftTypeAbbr(value: string): boolean {
+  return shiftTypeAbbrWidth(value) <= MAX_SHIFT_TYPE_ABBR_WIDTH;
+}
+
+/** 予定欄の最大幅（全角28文字＝半角56） */
+export const MAX_SHIFT_PLAN_WIDTH = 56;
+
+export function isValidShiftPlan(value: string): boolean {
+  return textDisplayWidth(value) <= MAX_SHIFT_PLAN_WIDTH;
+}
+
+/** シフト種別マスタ */
 export type ShiftTypeMaster = {
   id: string;
   name: string;
   abbreviation: string;
+  startTime: string;
+  endTime: string;
+  breakTime: string;
+  category: ShiftTypeCategory | "";
+  /** 基本色名または #rrggbb。未設定は空文字 */
+  iconColor: string;
 };
 
-export const SHIFT_TYPE_MASTER: readonly ShiftTypeMaster[] = [];
+export function createEmptyShiftType(): ShiftTypeMaster {
+  return {
+    id: crypto.randomUUID(),
+    name: "",
+    abbreviation: "",
+    startTime: "",
+    endTime: "",
+    breakTime: "",
+    category: "",
+    iconColor: "",
+  };
+}
 
 /** シフト表上の手入力・ロック状態 */
 export type ShiftSheetDraft = {
