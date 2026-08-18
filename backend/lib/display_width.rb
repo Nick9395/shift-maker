@@ -7,6 +7,7 @@ module DisplayWidth
   MAX_SHIFT_PLAN = 56
   MAX_SHIFT_STAFF = 60
   MAX_SHIFT_TYPES = 30
+  MAX_SHIFTS = 30
   MAX_ROLES = 30
 
   module_function

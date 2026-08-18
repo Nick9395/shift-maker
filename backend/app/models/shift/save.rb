@@ -52,6 +52,10 @@ class Shift::Save
   end
 
   def persist_shift!
+    if @shift.nil? && user.shifts.count >= DisplayWidth::MAX_SHIFTS
+      raise Invalid, "シフト表は#{DisplayWidth::MAX_SHIFTS}件まで保存できます"
+    end
+
     @shift ||= user.shifts.build
     @shift.assign_attributes(
       name: params[:name].to_s.strip,

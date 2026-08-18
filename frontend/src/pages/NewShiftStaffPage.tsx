@@ -4,7 +4,9 @@ import { fetchDuties } from "../api/duties";
 import { fetchStaffs } from "../api/staffs";
 import { useAuth } from "../auth/AuthContext";
 import { DutySelect } from "../components/DutySelect";
+import { RowReorderButtons } from "../components/RowReorderButtons";
 import { SuggestInput } from "../components/SuggestInput";
+import { moveItem } from "../lib/moveItem";
 import { useShiftWizardPaths } from "../lib/shiftWizard";
 import {
   createEmptySheet,
@@ -52,7 +54,7 @@ function initialRows(staff: ShiftStaffDraft[] | undefined): ShiftStaffDraft[] {
   return [createStaffRow()];
 }
 
-/** 新規シフト作成：職員名はマスタ選択または手入力。職務はマスタから選択 */
+/** 新規シフト表作成：職員名はマスタ選択または手入力。職務はマスタから選択 */
 export function NewShiftStaffPage() {
   const { draft, setDraft } = useOutletContext<NewShiftWizardContext>();
   const navigate = useNavigate();
@@ -135,6 +137,10 @@ export function NewShiftStaffPage() {
     });
   }
 
+  function moveRow(index: number, offset: -1 | 1) {
+    setRows((current) => moveItem(current, index, offset));
+  }
+
   function handleKeyDown(event: KeyboardEvent<HTMLFormElement>) {
     if (event.key === "Enter" && event.target instanceof HTMLInputElement) {
       event.preventDefault();
@@ -161,10 +167,6 @@ export function NewShiftStaffPage() {
         setError(`${index + 1}行目の職員氏名を入力してください`);
         return;
       }
-      if (!row.duty1) {
-        setError(`${index + 1}行目の職務1を選択してください`);
-        return;
-      }
     }
 
     if (staff.length > MAX_SHIFT_STAFF) {
@@ -178,7 +180,7 @@ export function NewShiftStaffPage() {
 
   return (
     <div className="shift-form-page shift-form-page--wide">
-      <h2>職員の登録</h2>
+      <h2>職員情報を設定</h2>
       <form
         className="shift-staff-form"
         onSubmit={handleSubmit}
@@ -194,6 +196,9 @@ export function NewShiftStaffPage() {
                 <th scope="col">職務1</th>
                 <th scope="col">職務2</th>
                 <th scope="col">職務3</th>
+                <th scope="col">
+                  <span className="visually-hidden">並び替え</span>
+                </th>
                 <th scope="col">
                   <span className="visually-hidden">削除</span>
                 </th>
@@ -218,6 +223,7 @@ export function NewShiftStaffPage() {
                       ariaLabel={`${index + 1}行目の職務1`}
                       value={row.duty1}
                       duties={duties}
+                      placeholder="未選択"
                       onChange={(value) => updateRow(row.id, "duty1", value)}
                     />
                   </td>
@@ -226,6 +232,7 @@ export function NewShiftStaffPage() {
                       ariaLabel={`${index + 1}行目の職務2`}
                       value={row.duty2}
                       duties={duties}
+                      placeholder="未選択"
                       onChange={(value) => updateRow(row.id, "duty2", value)}
                     />
                   </td>
@@ -234,7 +241,15 @@ export function NewShiftStaffPage() {
                       ariaLabel={`${index + 1}行目の職務3`}
                       value={row.duty3}
                       duties={duties}
+                      placeholder="未選択"
                       onChange={(value) => updateRow(row.id, "duty3", value)}
+                    />
+                  </td>
+                  <td className="shift-staff-table__reorder">
+                    <RowReorderButtons
+                      index={index}
+                      total={rows.length}
+                      onMove={(offset) => moveRow(index, offset)}
                     />
                   </td>
                   <td className="shift-staff-table__remove">
@@ -255,11 +270,11 @@ export function NewShiftStaffPage() {
         <div className="shift-staff-toolbar">
           <button
             type="button"
-            className="btn-add-row btn-add-row--wide"
+            className="btn-add-row btn-add-row--settings"
             onClick={addRow}
             disabled={rows.length >= MAX_SHIFT_STAFF}
           >
-            職員を追加
+            行追加
           </button>
           <p className="shift-staff-count">
             職員登録数 {filledCount} / {MAX_SHIFT_STAFF}

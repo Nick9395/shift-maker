@@ -3,7 +3,9 @@ import { Navigate, useNavigate, useOutletContext } from "react-router-dom";
 import { fetchDuties } from "../api/duties";
 import { useAuth } from "../auth/AuthContext";
 import { DutySelect } from "../components/DutySelect";
+import { RowReorderButtons } from "../components/RowReorderButtons";
 import { useShiftWizardPaths } from "../lib/shiftWizard";
+import { moveItem } from "../lib/moveItem";
 import {
   createEmptySheet,
   type DutyCountDraft,
@@ -33,7 +35,31 @@ function toBooleanSelect(value: boolean): "yes" | "no" {
   return value ? "yes" : "no";
 }
 
-/** 新規シフト作成：職務者のカウント設定 */
+function selectedDutyNames(
+  rows: DutyCountDraft[],
+  exceptId?: string,
+): Set<string> {
+  const names = new Set<string>();
+  for (const row of rows) {
+    if (exceptId && row.id === exceptId) continue;
+    const name = row.dutyId.trim();
+    if (name) names.add(name);
+  }
+  return names;
+}
+
+function duplicateDutyRowIndex(rows: DutyCountDraft[]): number | null {
+  const seen = new Set<string>();
+  for (const [index, row] of rows.entries()) {
+    const name = row.dutyId.trim();
+    if (!name) continue;
+    if (seen.has(name)) return index;
+    seen.add(name);
+  }
+  return null;
+}
+
+/** 新規シフト表作成：職務カウント設定 */
 export function NewShiftDutiesPage() {
   const { draft, setDraft } = useOutletContext<NewShiftWizardContext>();
   const navigate = useNavigate();
@@ -43,6 +69,7 @@ export function NewShiftDutiesPage() {
     initialRows(draft?.dutyCounts),
   );
   const [duties, setDuties] = useState<DutyMaster[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -88,9 +115,14 @@ export function NewShiftDutiesPage() {
     setRows((current) =>
       current.map((row) => (row.id === id ? { ...row, [field]: value } : row)),
     );
+    setError(null);
   }
 
+  const takenDutyCount = selectedDutyNames(rows).size;
+  const canAddRow = takenDutyCount < duties.length;
+
   function addRow() {
+    if (!canAddRow) return;
     setRows((current) => [...current, createDutyCountRow()]);
   }
 
@@ -99,6 +131,10 @@ export function NewShiftDutiesPage() {
       const next = current.filter((row) => row.id !== id);
       return next.length === 0 ? [createDutyCountRow()] : next;
     });
+  }
+
+  function moveRow(index: number, offset: -1 | 1) {
+    setRows((current) => moveItem(current, index, offset));
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLFormElement>) {
@@ -114,13 +150,20 @@ export function NewShiftDutiesPage() {
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    const duplicateIndex = duplicateDutyRowIndex(rows);
+    if (duplicateIndex != null) {
+      setError(
+        `${duplicateIndex + 1}行目の職務はすでに設定されています`,
+      );
+      return;
+    }
     persistDutyCounts(rows);
     navigate(paths.sheet);
   }
 
   return (
     <div className="shift-form-page shift-form-page--wide">
-      <h2>職務者のカウント設定</h2>
+      <h2>職務カウント設定</h2>
       <form
         className="shift-staff-form"
         onSubmit={handleSubmit}
@@ -138,6 +181,9 @@ export function NewShiftDutiesPage() {
                 <th scope="col">必要人数</th>
                 <th scope="col">不足通知</th>
                 <th scope="col">
+                  <span className="visually-hidden">並び替え</span>
+                </th>
+                <th scope="col">
                   <span className="visually-hidden">削除</span>
                 </th>
               </tr>
@@ -149,7 +195,10 @@ export function NewShiftDutiesPage() {
                     <DutySelect
                       ariaLabel={`${index + 1}行目のカウントする職務`}
                       value={row.dutyId}
-                      duties={duties}
+                      duties={duties.filter(
+                        (duty) =>
+                          !selectedDutyNames(rows, row.id).has(duty.name),
+                      )}
                       onChange={(value) => updateRow(row.id, "dutyId", value)}
                     />
                   </td>
@@ -214,6 +263,13 @@ export function NewShiftDutiesPage() {
                       <option value="no">しない</option>
                     </select>
                   </td>
+                  <td className="shift-staff-table__reorder">
+                    <RowReorderButtons
+                      index={index}
+                      total={rows.length}
+                      onMove={(offset) => moveRow(index, offset)}
+                    />
+                  </td>
                   <td className="shift-staff-table__remove">
                     <button
                       type="button"
@@ -232,12 +288,15 @@ export function NewShiftDutiesPage() {
         <div className="shift-staff-toolbar">
           <button
             type="button"
-            className="btn-add-row btn-add-row--wide"
+            className="btn-add-row btn-add-row--settings"
             onClick={addRow}
+            disabled={!canAddRow}
           >
-            職務を追加
+            行追加
           </button>
         </div>
+
+        {error ? <p className="auth-error">{error}</p> : null}
 
         <div className="shift-form__actions">
           <button type="submit" className="btn-primary">

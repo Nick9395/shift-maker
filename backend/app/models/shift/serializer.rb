@@ -8,6 +8,7 @@ class Shift::Serializer
       start_date: shift.start_date,
       end_date: shift.end_date,
       public_holiday: shift.public_holiday,
+      created_at: shift.created_at,
       updated_at: shift.updated_at
     }
   end
