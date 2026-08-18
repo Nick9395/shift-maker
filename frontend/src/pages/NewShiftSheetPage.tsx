@@ -717,7 +717,10 @@ export function NewShiftSheetPage() {
   }
 
   function handleContextMenu(event: ReactMouseEvent<HTMLDivElement>) {
-    if (readPaintCell(event.target)) {
+    const onPaintCell =
+      readPaintCell(event.target) != null ||
+      paintCellFromPoint(event.clientX, event.clientY) != null;
+    if (onPaintCell || eraseOverrideRef.current) {
       event.preventDefault();
     }
   }
