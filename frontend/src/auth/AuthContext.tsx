@@ -4,10 +4,16 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
 import * as authApi from "../api/auth";
+import {
+  LOGIN_WELCOME_DURATION_MS,
+  pickLoginWelcome,
+  type LoginWelcomeMessage,
+} from "../lib/loginWelcome";
 import type { AuthUser } from "../types/auth";
 import { setLastLoginEmail } from "./lastLoginEmail";
 import { clearToken, getToken, setToken } from "./token";
@@ -25,6 +31,14 @@ type AuthContextValue = {
   ) => Promise<void>;
   logout: () => Promise<void>;
   refreshMe: () => Promise<void>;
+  welcomeMessage: LoginWelcomeMessage | null;
+  updateAccount: (params: {
+    name: string;
+    email: string;
+    currentPassword: string;
+    password?: string;
+    passwordConfirmation?: string;
+  }) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -33,6 +47,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setTokenState] = useState<string | null>(() => getToken());
   const [loading, setLoading] = useState(true);
+  const [welcomeMessage, setWelcomeMessage] = useState<LoginWelcomeMessage | null>(
+    null,
+  );
+  const welcomeTimerRef = useRef(0);
+
+  const clearWelcomeMessage = useCallback(() => {
+    window.clearTimeout(welcomeTimerRef.current);
+    setWelcomeMessage(null);
+  }, []);
+
+  const showLoginWelcome = useCallback((name: string) => {
+    window.clearTimeout(welcomeTimerRef.current);
+    setWelcomeMessage(pickLoginWelcome(name));
+    welcomeTimerRef.current = window.setTimeout(() => {
+      setWelcomeMessage(null);
+    }, LOGIN_WELCOME_DURATION_MS);
+  }, []);
 
   const refreshMe = useCallback(async () => {
     const current = getToken();
@@ -57,12 +88,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refreshMe().finally(() => setLoading(false));
   }, [refreshMe]);
 
+  useEffect(() => {
+    return () => {
+      window.clearTimeout(welcomeTimerRef.current);
+    };
+  }, []);
+
   const login = useCallback(async (email: string, password: string) => {
     const result = await authApi.login({ email, password });
     setToken(result.token);
     setTokenState(result.token);
     setUser(result.user);
-  }, []);
+    showLoginWelcome(result.user.name);
+  }, [showLoginWelcome]);
 
   const signup = useCallback(
     async (
@@ -84,6 +122,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const updateAccount = useCallback(
+    async (params: {
+      name: string;
+      email: string;
+      currentPassword: string;
+      password?: string;
+      passwordConfirmation?: string;
+    }) => {
+      const current = getToken();
+      if (!current) {
+        throw new Error("ログインが必要です");
+      }
+      const data = await authApi.updateMe(current, params);
+      setUser(data.user);
+    },
+    [],
+  );
+
   const logout = useCallback(async () => {
     // ProtectedRoute が state なしで /login へ飛ばす競合に備え、先に退避する
     if (user?.email) {
@@ -101,7 +157,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearToken();
     setTokenState(null);
     setUser(null);
-  }, [user]);
+    clearWelcomeMessage();
+  }, [user, clearWelcomeMessage]);
 
   const value = useMemo(
     () => ({
@@ -112,8 +169,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signup,
       logout,
       refreshMe,
+      updateAccount,
+      welcomeMessage,
     }),
-    [user, token, loading, login, signup, logout, refreshMe],
+    [
+      user,
+      token,
+      loading,
+      login,
+      signup,
+      logout,
+      refreshMe,
+      updateAccount,
+      welcomeMessage,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

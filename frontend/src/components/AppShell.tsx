@@ -2,6 +2,18 @@ import { useState, type ReactNode } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 
+function BrandMark() {
+  return (
+    <svg className="app-shell__brand-mark" viewBox="0 0 24 24" aria-hidden="true">
+      <rect width="24" height="24" rx="6" fill="currentColor" />
+      <path
+        fill="#241f1c"
+        d="M7 8.2h10v1.7H7zm0 3.1h10v1.7H7zm0 3.1h6.5v1.7H7z"
+      />
+    </svg>
+  );
+}
+
 function SidebarToggleIcon({ open }: { open: boolean }) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -26,7 +38,7 @@ type AppShellProps = {
 
 /** 認証後の共通シェル（サイドバー付き） */
 export function AppShell({ children }: AppShellProps) {
-  const { user, logout } = useAuth();
+  const { user, logout, welcomeMessage } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -48,8 +60,12 @@ export function AppShell({ children }: AppShellProps) {
       <aside className="app-shell__sidebar">
         <div className="app-shell__sidebar-top">
           {sidebarOpen ? (
-            <Link className="app-shell__brand is-active" to="/home">
-              Shift Maker
+            <Link className="app-shell__brand" to="/home">
+              <BrandMark />
+              <span className="app-shell__brand-text">
+                <span className="app-shell__brand-shift">Shift</span>
+                <span className="app-shell__brand-maker">Maker</span>
+              </span>
             </Link>
           ) : null}
           <button
@@ -96,7 +112,24 @@ export function AppShell({ children }: AppShellProps) {
       <main className="app-shell__main">
         {isSheetPage ? null : (
           <header className="app-shell__header">
-            <h1>{user?.name || "ユーザー"}さんのページ</h1>
+            <h1 aria-hidden={welcomeMessage ? true : undefined}>
+              <span className="app-shell__header-name">
+                {user?.name || "ユーザー"}さん
+              </span>
+              <span className="app-shell__header-sep" aria-hidden="true" />
+              <span className="app-shell__header-page">のページ</span>
+            </h1>
+            {welcomeMessage ? (
+              <p className="app-shell__welcome" role="status" aria-live="polite">
+                <span className="app-shell__welcome-name">
+                  {welcomeMessage.name}さん
+                </span>
+                <span className="app-shell__welcome-sep" aria-hidden="true" />
+                <span className="app-shell__welcome-body">
+                  {welcomeMessage.body}
+                </span>
+              </p>
+            ) : null}
           </header>
         )}
         <section
