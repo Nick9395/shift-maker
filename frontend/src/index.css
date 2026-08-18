@@ -395,7 +395,9 @@ select {
 }
 
 .app-shell__sidebar {
-  background: var(--sidebar);
+  position: relative;
+  background:
+    linear-gradient(180deg, #2c2622 0%, #1f1c1a 100%);
   color: var(--sidebar-text);
   padding: 20px 16px;
   display: flex;
@@ -403,6 +405,15 @@ select {
   gap: 20px;
   height: 100svh;
   overflow: auto;
+}
+
+.app-shell__sidebar::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: linear-gradient(180deg, #e08a4f, var(--accent) 55%, #8a3e16);
+  pointer-events: none;
 }
 
 .app-shell--sidebar-collapsed .app-shell__sidebar {
@@ -416,6 +427,8 @@ select {
   justify-content: space-between;
   gap: 8px;
   min-height: 32px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(247, 239, 228, 0.12);
 }
 
 .app-shell--sidebar-collapsed .app-shell__sidebar-top {
@@ -423,19 +436,53 @@ select {
 }
 
 .app-shell__brand {
-  color: var(--sidebar-text);
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-decoration: none;
-  opacity: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   min-width: 0;
+  color: var(--sidebar-text);
+  text-decoration: none;
 }
 
 .app-shell__brand:hover {
-  color: var(--accent);
-  font-weight: 700;
+  color: var(--sidebar-text);
   text-decoration: none;
   background: transparent;
+}
+
+.app-shell__brand:hover .app-shell__brand-mark {
+  color: #e08a4f;
+}
+
+.app-shell__brand-mark {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  color: var(--accent);
+  display: block;
+}
+
+.app-shell__brand-text {
+  display: flex;
+  align-items: baseline;
+  gap: 0.28em;
+  min-width: 0;
+  line-height: 1;
+}
+
+.app-shell__brand-shift {
+  font-size: 0.98rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #f3d2b8;
+}
+
+.app-shell__brand-maker {
+  font-size: 0.98rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: #f7efe4;
+  opacity: 0.82;
 }
 
 .app-shell__sidebar-toggle {
@@ -522,14 +569,150 @@ select {
 }
 
 .app-shell__header {
-  background-color: var(--bar);
+  position: relative;
+  background:
+    linear-gradient(180deg, #f6ead8 0%, var(--bar) 100%);
   border-bottom: 1px solid var(--border);
-  padding: 18px 24px;
+  padding: 18px 24px 18px 28px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.app-shell__header::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, #e08a4f, var(--accent) 55%, #8a3e16);
 }
 
 .app-shell__header h1 {
+  display: flex;
+  align-items: center;
+  gap: 14px;
   margin: 0;
-  font-size: 1.35rem;
+  font-size: inherit;
+  font-weight: 400;
+}
+
+.app-shell__header-name {
+  color: var(--ink);
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.app-shell__header-sep {
+  width: 1px;
+  height: 1.1em;
+  background: rgba(92, 83, 74, 0.28);
+}
+
+.app-shell__header-page {
+  color: var(--ink-soft);
+  font-size: 1.02rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.app-shell__welcome {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 0;
+  padding: 18px 24px 18px 28px;
+  overflow: hidden;
+  background:
+    linear-gradient(
+      105deg,
+      #241f1c 0%,
+      #2f2925 42%,
+      #3a312b 100%
+    );
+  color: var(--sidebar-text);
+  z-index: 1;
+  animation:
+    welcome-enter 0.55s ease-out both,
+    welcome-exit 0.45s ease-in 3.5s forwards;
+}
+
+.app-shell__welcome::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, #e08a4f, var(--accent) 55%, #8a3e16);
+}
+
+.app-shell__welcome::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    120% 140% at 0% 50%,
+    rgba(196, 92, 38, 0.22),
+    transparent 46%
+  );
+}
+
+.app-shell__welcome-name,
+.app-shell__welcome-body,
+.app-shell__welcome-sep {
+  position: relative;
+  z-index: 1;
+}
+
+.app-shell__welcome-name {
+  flex-shrink: 0;
+  color: #f3d2b8;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.app-shell__welcome-sep {
+  flex-shrink: 0;
+  width: 1px;
+  height: 1.15em;
+  background: rgba(243, 210, 184, 0.35);
+}
+
+.app-shell__welcome-body {
+  min-width: 0;
+  color: #f7efe4;
+  font-size: 1.02rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@keyframes welcome-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes welcome-exit {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 
 .app-shell__content {
@@ -728,7 +911,9 @@ select {
 }
 
 .shift-form input[type="text"],
-.shift-form input[type="number"] {
+.shift-form input[type="number"],
+.shift-form input[type="email"],
+.shift-form input[type="password"] {
   border: 1px solid var(--border);
   background: #fff;
   padding: 10px 12px;
@@ -749,6 +934,32 @@ select {
 
 .shift-form .shift-form__number input[type="number"] {
   width: 42%;
+}
+
+.account-form__section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 4px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.account-form__note {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.account-form__actions {
+  justify-content: center;
+}
+
+.account-form__actions > button {
+  min-width: 8em;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .shift-form__actions {

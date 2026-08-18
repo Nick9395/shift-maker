@@ -65,6 +65,34 @@ export async function fetchMe(token: string): Promise<UserResponse> {
   return data;
 }
 
+export async function updateMe(
+  token: string,
+  params: {
+    name: string;
+    email: string;
+    currentPassword: string;
+    password?: string;
+    passwordConfirmation?: string;
+  },
+): Promise<UserResponse> {
+  const user: Record<string, string> = {
+    name: params.name,
+    email: params.email,
+    current_password: params.currentPassword,
+  };
+  if (params.password) {
+    user.password = params.password;
+    user.password_confirmation = params.passwordConfirmation ?? "";
+  }
+
+  const { data } = await apiRequest<UserResponse>("/api/v1/me", {
+    method: "PUT",
+    token,
+    body: { user },
+  });
+  return data;
+}
+
 export async function requestPasswordReset(email: string): Promise<MessageResponse> {
   const { data } = await apiRequest<MessageResponse>("/api/v1/password", {
     method: "POST",

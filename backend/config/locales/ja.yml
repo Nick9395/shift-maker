@@ -25,6 +25,7 @@ ja:
       shift_plan:
         body: 予定
       user:
+        name: ユーザー名
         email: メールアドレス
         password: パスワード
         password_confirmation: パスワード（確認）
@@ -34,6 +35,9 @@ ja:
       models:
         user:
           attributes:
+            name:
+              blank: を入力してください
+              too_long: は%{count}文字以内で入力してください
             email:
               taken: はすでに使用されています
               blank: を入力してください
@@ -43,6 +47,9 @@ ja:
               too_short: は%{count}文字以上で入力してください
             password_confirmation:
               confirmation: とパスワードの入力が一致しません
+            current_password:
+              blank: を入力してください
+              invalid: が正しくありません
   errors:
     messages:
       blank: を入力してください
@@ -50,3 +57,4 @@ ja:
       invalid: は不正な値です
       confirmation: と%{attribute}の入力が一致しません
       too_short: は%{count}文字以上で入力してください
+      too_long: は%{count}文字以内で入力してください

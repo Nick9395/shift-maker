@@ -12,9 +12,9 @@ import { NewShiftPage } from "./pages/NewShiftPage";
 import { NewShiftSheetPage } from "./pages/NewShiftSheetPage";
 import { NewShiftStaffPage } from "./pages/NewShiftStaffPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
+import { AccountSettingsPage } from "./pages/AccountSettingsPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { DutiesSettingsPage } from "./pages/DutiesSettingsPage";
-import { SettingsPlaceholderPage } from "./pages/SettingsPlaceholderPage";
 import { ShiftTypesSettingsPage } from "./pages/ShiftTypesSettingsPage";
 import { ShiftsListPage } from "./pages/ShiftsListPage";
 import { SignupPage } from "./pages/SignupPage";
@@ -48,10 +48,7 @@ function App() {
               path="/settings/shift-types"
               element={<ShiftTypesSettingsPage />}
             />
-            <Route
-              path="/settings/account"
-              element={<SettingsPlaceholderPage title="アカウント設定" />}
-            />
+            <Route path="/settings/account" element={<AccountSettingsPage />} />
             <Route path="/shifts/new" element={<NewShiftLayout />}>
               <Route index element={<NewShiftPage />} />
               <Route path="staff" element={<NewShiftStaffPage />} />

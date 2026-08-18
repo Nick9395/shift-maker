@@ -20,6 +20,8 @@ Rails.application.routes.draw do
       get "health/index"
       get "health", to: "health#index"
       get "me", to: "users/profiles#show"
+      put "me", to: "users/profiles#update"
+      patch "me", to: "users/profiles#update"
       get "shift_types", to: "shift_types#index"
       put "shift_types", to: "shift_types#update"
       get "staffs", to: "staffs#index"
