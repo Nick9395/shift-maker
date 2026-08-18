@@ -617,6 +617,7 @@ export function NewShiftSheetPage() {
       return;
     }
 
+    if (!typeId) return;
     if (existing === typeId) return;
 
     const nextCells = { ...cellsRef.current, [key]: typeId };
