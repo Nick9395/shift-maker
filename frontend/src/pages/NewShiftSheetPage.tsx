@@ -9,10 +9,12 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import { Navigate, useNavigate, useOutletContext } from "react-router-dom";
-import { createShift, updateShift } from "../api/shifts";
+import { createShift, deleteShift, updateShift } from "../api/shifts";
 import { ApiError } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
+import { fetchDuties } from "../api/duties";
 import { loadShiftTypesForUser } from "../api/shiftTypes";
+import { FlashToast, useFlash } from "../components/FlashToast";
 import { brushCursor, eraserCursor } from "../lib/brushCursor";
 import {
   eachIsoDate,
@@ -30,6 +32,7 @@ import {
   resolveShiftTypeColor,
   sheetCellKey,
   type DutyCountDraft,
+  type DutyMaster,
   type ShiftSheetDraft,
   type ShiftStaffDraft,
   type ShiftTypeMaster,
@@ -41,9 +44,18 @@ const ERASER_TOOL_ID = "__eraser__";
 
 type InteractionMode = "idle" | "paint" | "pan";
 
-function formatStaffDuties(member: ShiftStaffDraft): string {
-  const duties = [member.duty1, member.duty2, member.duty3].filter(Boolean);
-  return duties.length > 0 ? duties.join("/") : "—";
+function formatStaffDuties(
+  member: ShiftStaffDraft,
+  dutyByName: Map<string, string>,
+): string {
+  const labels = [member.duty1, member.duty2, member.duty3]
+    .map((name) => name.trim())
+    .filter(Boolean)
+    .map((name) => {
+      const abbreviation = dutyByName.get(name);
+      return abbreviation || name;
+    });
+  return labels.length > 0 ? labels.join("/") : "—";
 }
 
 function formatDutyCount(row: DutyCountDraft): string {
@@ -66,6 +78,25 @@ function shiftTypeById(
   return types.find((type) => type.id === id);
 }
 
+function channelToLinear(value: number): number {
+  const channel = value / 255;
+  return channel <= 0.04045
+    ? channel / 12.92
+    : ((channel + 0.055) / 1.055) ** 2.4;
+}
+
+/** 背景色の明るさに応じて白または黒の文字色を返す */
+function contrastInk(hex: string): "#fff" | "#1f1f1f" {
+  const r = Number.parseInt(hex.slice(1, 3), 16);
+  const g = Number.parseInt(hex.slice(3, 5), 16);
+  const b = Number.parseInt(hex.slice(5, 7), 16);
+  const luminance =
+    0.2126 * channelToLinear(r) +
+    0.7152 * channelToLinear(g) +
+    0.0722 * channelToLinear(b);
+  return luminance > 0.45 ? "#1f1f1f" : "#fff";
+}
+
 function paletteStyle(color: string): {
   backgroundColor?: string;
   color?: string;
@@ -74,7 +105,7 @@ function paletteStyle(color: string): {
   if (!hex) return undefined;
   return {
     backgroundColor: hex,
-    color: "#fff",
+    color: contrastInk(hex),
   };
 }
 
@@ -83,7 +114,7 @@ function cellFillStyle(color: string): CSSProperties | undefined {
   if (!hex) return undefined;
   return {
     backgroundColor: hex,
-    color: "#fff",
+    color: contrastInk(hex),
   };
 }
 
@@ -223,11 +254,15 @@ export function NewShiftSheetPage() {
   const [isSaved, setIsSaved] = useState(() => Boolean(draft?.serverId));
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const { flashMessage, showFlash } = useFlash();
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null);
   const [visibleShiftTypes, setVisibleShiftTypes] = useState(() =>
     loadShiftTypes().slice(0, MAX_SHIFT_TYPES),
   );
+  const [duties, setDuties] = useState<DutyMaster[]>([]);
 
   const pageRef = useRef<HTMLDivElement>(null);
   const stickyHeaderRef = useRef<HTMLElement>(null);
@@ -253,6 +288,15 @@ export function NewShiftSheetPage() {
     () => (draft ? eachIsoDate(draft.startDate, draft.endDate) : []),
     [draft],
   );
+
+  const dutyByName = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const duty of duties) {
+      const abbreviation = duty.abbreviation.trim();
+      if (abbreviation) map.set(duty.name, abbreviation);
+    }
+    return map;
+  }, [duties]);
 
   useEffect(() => {
     let cancelled = false;
@@ -284,17 +328,37 @@ export function NewShiftSheetPage() {
   }, [paletteTypes, token]);
 
   useEffect(() => {
-    if (!confirmCancel) return;
+    if (!token) return;
+
+    let cancelled = false;
+    fetchDuties(token)
+      .then((records) => {
+        if (!cancelled) {
+          setDuties(records.filter((duty) => duty.name.trim() !== ""));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setDuties([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+
+  useEffect(() => {
+    if (!confirmCancel && !confirmDelete) return;
 
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setConfirmCancel(false);
-      }
+      if (event.key !== "Escape") return;
+      if (deleting) return;
+      setConfirmCancel(false);
+      setConfirmDelete(false);
     }
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [confirmCancel]);
+  }, [confirmCancel, confirmDelete, deleting]);
 
   useLayoutEffect(() => {
     const header = stickyHeaderRef.current;
@@ -383,6 +447,7 @@ export function NewShiftSheetPage() {
         : await createShift(token, current, visibleShiftTypes);
       setDraft({ ...current, serverId: saved.id });
       setIsSaved(true);
+      showFlash("保存しました");
     } catch (caught: unknown) {
       setSaveError(
         caught instanceof ApiError
@@ -405,6 +470,36 @@ export function NewShiftSheetPage() {
   function confirmDiscardAndLeave() {
     setConfirmCancel(false);
     navigate(cancelPath);
+  }
+
+  function handleDelete() {
+    setConfirmDelete(true);
+  }
+
+  async function confirmDeleteShift() {
+    const current = draftRef.current ?? currentDraft;
+    setDeleting(true);
+    setSaveError(null);
+    try {
+      if (current.serverId) {
+        if (!token) {
+          setSaveError("ログインが必要です");
+          return;
+        }
+        await deleteShift(token, current.serverId);
+      }
+      setConfirmDelete(false);
+      navigate("/shifts", { state: { flash: "シフト表を削除しました" } });
+    } catch (caught: unknown) {
+      setSaveError(
+        caught instanceof ApiError
+          ? caught.message
+          : "シフト表の削除に失敗しました",
+      );
+    } finally {
+      setConfirmDelete(false);
+      setDeleting(false);
+    }
   }
 
   function isTypeLocked(typeId: string): boolean {
@@ -591,6 +686,7 @@ export function NewShiftSheetPage() {
       onLostPointerCapture={handleLostPointerCapture}
       onDragStart={(event) => event.preventDefault()}
     >
+      <FlashToast message={flashMessage} />
       <header ref={stickyHeaderRef} className="shift-sheet-sticky">
         <div className="shift-sheet-sticky__inner">
         <div className="shift-palette" aria-label="シフト種別">
@@ -701,7 +797,7 @@ export function NewShiftSheetPage() {
               onClick={() => {
                 void handleSave();
               }}
-              disabled={saving}
+              disabled={saving || deleting}
             >
               {saving ? "保存中..." : "保存"}
             </button>
@@ -732,8 +828,17 @@ export function NewShiftSheetPage() {
               type="button"
               className="btn-secondary btn-sheet-action"
               onClick={handleCancel}
+              disabled={saving || deleting}
             >
               キャンセル
+            </button>
+            <button
+              type="button"
+              className="btn-secondary btn-sheet-action btn-sheet-danger"
+              onClick={handleDelete}
+              disabled={saving || deleting}
+            >
+              {deleting ? "削除中..." : "削除"}
             </button>
           </div>
         </div>
@@ -791,7 +896,7 @@ export function NewShiftSheetPage() {
                 <th className="col-name" scope="row">
                   {member.name}
                 </th>
-                <td className="col-duty">{formatStaffDuties(member)}</td>
+                <td className="col-duty">{formatStaffDuties(member, dutyByName)}</td>
                 {dates.map((iso) => {
                   const shiftTypeId = cells[sheetCellKey(member.id, iso)];
                   const shiftType = shiftTypeId
@@ -911,6 +1016,48 @@ export function NewShiftSheetPage() {
                 type="button"
                 className="btn-secondary confirm-dialog__btn"
                 onClick={() => setConfirmCancel(false)}
+              >
+                いいえ
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {confirmDelete ? (
+        <div
+          className="confirm-dialog"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-confirm-title"
+        >
+          <div
+            className="confirm-dialog__backdrop"
+            onClick={() => {
+              if (!deleting) setConfirmDelete(false);
+            }}
+          />
+          <div className="confirm-dialog__card">
+            <p id="delete-confirm-title">
+              このシフト表を削除します。
+              <br />
+              よろしいですか？
+            </p>
+            <div className="confirm-dialog__actions">
+              <button
+                type="button"
+                className="btn-primary confirm-dialog__btn"
+                onClick={() => {
+                  void confirmDeleteShift();
+                }}
+                disabled={deleting}
+              >
+                {deleting ? "削除中..." : "はい"}
+              </button>
+              <button
+                type="button"
+                className="btn-secondary confirm-dialog__btn"
+                onClick={() => setConfirmDelete(false)}
+                disabled={deleting}
               >
                 いいえ
               </button>

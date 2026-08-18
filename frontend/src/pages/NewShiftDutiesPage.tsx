@@ -1,11 +1,15 @@
-import { useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useState, type FormEvent, type KeyboardEvent } from "react";
 import { Navigate, useNavigate, useOutletContext } from "react-router-dom";
+import { fetchDuties } from "../api/duties";
+import { useAuth } from "../auth/AuthContext";
+import { DutySelect } from "../components/DutySelect";
 import { useShiftWizardPaths } from "../lib/shiftWizard";
-import { createEmptySheet, type DutyCountDraft } from "../types/shift";
+import {
+  createEmptySheet,
+  type DutyCountDraft,
+  type DutyMaster,
+} from "../types/shift";
 import type { NewShiftWizardContext } from "./NewShiftLayout";
-
-/** 職務マスタ。設定画面の実装後に選択肢を入れる */
-const DUTY_MASTER: ReadonlyArray<{ id: string; name: string }> = [];
 
 function createDutyCountRow(): DutyCountDraft {
   return {
@@ -34,9 +38,29 @@ export function NewShiftDutiesPage() {
   const { draft, setDraft } = useOutletContext<NewShiftWizardContext>();
   const navigate = useNavigate();
   const paths = useShiftWizardPaths();
+  const { token } = useAuth();
   const [rows, setRows] = useState<DutyCountDraft[]>(() =>
     initialRows(draft?.dutyCounts),
   );
+  const [duties, setDuties] = useState<DutyMaster[]>([]);
+
+  useEffect(() => {
+    if (!token) return;
+
+    let cancelled = false;
+    fetchDuties(token)
+      .then((records) => {
+        if (cancelled) return;
+        setDuties(records.filter((duty) => duty.name.trim() !== ""));
+      })
+      .catch(() => {
+        if (!cancelled) setDuties([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
 
   if (!draft) {
     return <Navigate to={paths.root} replace />;
@@ -122,20 +146,12 @@ export function NewShiftDutiesPage() {
               {rows.map((row, index) => (
                 <tr key={row.id}>
                   <td>
-                    <select
-                      aria-label={`${index + 1}行目のカウントする職務`}
+                    <DutySelect
+                      ariaLabel={`${index + 1}行目のカウントする職務`}
                       value={row.dutyId}
-                      onChange={(event) =>
-                        updateRow(row.id, "dutyId", event.target.value)
-                      }
-                    >
-                      <option value="">選択してください</option>
-                      {DUTY_MASTER.map((duty) => (
-                        <option key={duty.id} value={duty.id}>
-                          {duty.name}
-                        </option>
-                      ))}
-                    </select>
+                      duties={duties}
+                      onChange={(value) => updateRow(row.id, "dutyId", value)}
+                    />
                   </td>
                   <td>
                     <select
@@ -214,7 +230,11 @@ export function NewShiftDutiesPage() {
         </div>
 
         <div className="shift-staff-toolbar">
-          <button type="button" className="btn-secondary" onClick={addRow}>
+          <button
+            type="button"
+            className="btn-add-row btn-add-row--wide"
+            onClick={addRow}
+          >
             職務を追加
           </button>
         </div>

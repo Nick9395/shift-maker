@@ -196,3 +196,10 @@ export async function updateShift(
   });
   return data.shift;
 }
+
+export async function deleteShift(token: string, id: number): Promise<void> {
+  await apiRequest(`/api/v1/shifts/${id}`, {
+    method: "DELETE",
+    token,
+  });
+}

@@ -4,6 +4,8 @@ ja:
       user: ユーザー
       shift: 勤務表
       shift_staff: 職員
+      staff: 職員
+      role: 職務
       shift_plan: 予定
       shift_type: シフト種別
     attributes:
@@ -12,6 +14,11 @@ ja:
         start_date: 開始年月日
         end_date: 終了年月日
         public_holiday: 公休数
+      staff:
+        name: 職員氏名
+      role:
+        name: 職務名
+        abbreviation: 略称
       shift_type:
         name: シフト名
         display_name: 表示

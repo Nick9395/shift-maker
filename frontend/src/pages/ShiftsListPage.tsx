@@ -1,10 +1,15 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { fetchShifts, type ShiftSummary } from "../api/shifts";
 import { ApiError } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { AppShell } from "../components/AppShell";
+import { FlashToast, useFlash } from "../components/FlashToast";
 import { formatJaDate } from "../lib/date";
+
+type ShiftsListLocationState = {
+  flash?: string;
+};
 
 function formatUpdatedAt(iso: string): string {
   const date = new Date(iso);
@@ -15,8 +20,18 @@ function formatUpdatedAt(iso: string): string {
 /** 保存済み勤務表の一覧 */
 export function ShiftsListPage() {
   const { token } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { flashMessage, showFlash } = useFlash();
   const [shifts, setShifts] = useState<ShiftSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const flash = (location.state as ShiftsListLocationState | null)?.flash;
+
+  useEffect(() => {
+    if (!flash) return;
+    showFlash(flash);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [flash, showFlash, navigate, location.pathname]);
 
   useEffect(() => {
     if (!token) return;
@@ -45,6 +60,7 @@ export function ShiftsListPage() {
 
   return (
     <AppShell>
+      <FlashToast message={flashMessage} />
       <div className="shift-list-page">
         <h2>シフト一覧</h2>
         {error ? <p className="auth-error">{error}</p> : null}

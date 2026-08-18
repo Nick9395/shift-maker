@@ -1,9 +1,10 @@
-import { useEffect, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { loadShiftTypesForUser, replaceShiftTypes } from "../api/shiftTypes";
 import { ApiError } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { AppShell } from "../components/AppShell";
+import { FlashToast, useFlash } from "../components/FlashToast";
 import {
   createEmptyShiftType,
   isValidShiftTypeAbbr,
@@ -11,6 +12,7 @@ import {
   SHIFT_TYPE_CATEGORIES,
   SHIFT_TYPE_COLOR_HEX,
   SHIFT_TYPE_COLORS,
+  isPresetShiftTypeColor,
   resolveShiftTypeColor,
   type ShiftTypeMaster,
 } from "../types/shift";
@@ -57,35 +59,128 @@ function IconColorField({
   onChange: (value: string) => void;
 }) {
   const resolved = resolveShiftTypeColor(row.iconColor);
+  const customSelected = Boolean(resolved) && !isPresetShiftTypeColor(row.iconColor);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const pickerRef = useRef<HTMLInputElement>(null);
+  const pickingCustomRef = useRef(false);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const picker = pickerRef.current;
+    if (!picker) return;
+
+    function handleNativeChange() {
+      pickingCustomRef.current = false;
+      setOpen(false);
+    }
+
+    picker.addEventListener("change", handleNativeChange);
+    return () => {
+      picker.removeEventListener("change", handleNativeChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const picker = pickerRef.current;
+
+    function handlePointerDown(event: PointerEvent) {
+      if (rootRef.current?.contains(event.target as Node)) return;
+      if (pickingCustomRef.current) return;
+      if (picker && document.activeElement === picker) return;
+      setOpen(false);
+    }
+
+    function handleKeyDown(event: globalThis.KeyboardEvent) {
+      if (event.key === "Escape" && !pickingCustomRef.current) {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
+  function selectPreset(hex: string) {
+    pickingCustomRef.current = false;
+    onChange(hex);
+    setOpen(false);
+  }
 
   return (
-    <div className="shift-type-color">
-      {SHIFT_TYPE_COLORS.map((color) => {
-        const hex = SHIFT_TYPE_COLOR_HEX[color];
-        const selected = resolved === hex;
-        return (
-          <button
-            key={color}
-            type="button"
-            className={
-              selected
-                ? "shift-type-color__swatch is-selected"
-                : "shift-type-color__swatch"
-            }
-            style={{ backgroundColor: hex }}
-            aria-label={`${index + 1}行目のアイコンの色 ${color}`}
-            aria-pressed={selected}
-            onClick={() => onChange(hex)}
-          />
-        );
-      })}
-      <input
-        type="color"
-        className="shift-type-color__picker"
-        aria-label={`${index + 1}行目のアイコンの色を細かく選択`}
-        value={resolved ?? COLOR_PICKER_FALLBACK}
-        onChange={(event) => onChange(event.target.value)}
+    <div className="shift-type-color" ref={rootRef}>
+      <button
+        type="button"
+        className={
+          resolved
+            ? "shift-type-color__current"
+            : "shift-type-color__current is-empty"
+        }
+        style={resolved ? { backgroundColor: resolved } : undefined}
+        aria-label={
+          resolved
+            ? `${index + 1}行目のアイコンの色 選択中`
+            : `${index + 1}行目のアイコンの色 未選択`
+        }
+        aria-expanded={open}
+        aria-haspopup="true"
+        onClick={() => setOpen((current) => !current)}
       />
+      <div
+        className={
+          open
+            ? "shift-type-color__popover"
+            : "shift-type-color__popover is-closed"
+        }
+        role="listbox"
+        aria-hidden={!open}
+        aria-label={`${index + 1}行目のアイコンの色`}
+      >
+          {SHIFT_TYPE_COLORS.map((color) => {
+            const hex = SHIFT_TYPE_COLOR_HEX[color];
+            const selected = resolved === hex;
+            return (
+              <button
+                key={color}
+                type="button"
+                className={
+                  selected
+                    ? "shift-type-color__swatch is-selected"
+                    : "shift-type-color__swatch"
+                }
+                style={{ backgroundColor: hex }}
+                aria-label={`${index + 1}行目のアイコンの色 ${color}`}
+                aria-selected={selected}
+                role="option"
+                onClick={() => selectPreset(hex)}
+              />
+            );
+          })}
+          <label
+            className={
+              customSelected
+                ? "shift-type-color__picker-wrap"
+                : "shift-type-color__picker-wrap is-empty"
+            }
+          >
+            <input
+              ref={pickerRef}
+              type="color"
+              className="shift-type-color__picker"
+              aria-label={`${index + 1}行目のアイコンの色を細かく選択`}
+              value={customSelected && resolved ? resolved : COLOR_PICKER_FALLBACK}
+              onPointerDown={() => {
+                pickingCustomRef.current = true;
+              }}
+              onChange={(event) => onChange(event.target.value)}
+            />
+          </label>
+        </div>
     </div>
   );
 }
@@ -100,6 +195,7 @@ export function ShiftTypesSettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const { flashMessage, showFlash } = useFlash();
 
   useEffect(() => {
     if (!token) {
@@ -191,7 +287,7 @@ export function ShiftTypesSettingsPage() {
     setSaving(true);
     try {
       await replaceShiftTypes(token, stored);
-      navigate("/settings");
+      showFlash("保存しました");
     } catch (caught: unknown) {
       setError(
         caught instanceof ApiError
@@ -205,6 +301,7 @@ export function ShiftTypesSettingsPage() {
 
   return (
     <AppShell>
+      <FlashToast message={flashMessage} />
       <div className="shift-form-page shift-form-page--wide shift-form-page--types">
         <h2>シフトの種類を登録する</h2>
         {loading ? <p className="auth-muted">読み込み中...</p> : null}
@@ -336,7 +433,7 @@ export function ShiftTypesSettingsPage() {
           <div className="shift-staff-toolbar">
             <button
               type="button"
-              className="btn-secondary"
+              className="btn-add-row btn-add-row--settings"
               onClick={addRow}
               disabled={rows.length >= MAX_SHIFT_TYPES}
             >
@@ -349,9 +446,9 @@ export function ShiftTypesSettingsPage() {
 
           {error ? <p className="auth-error">{error}</p> : null}
 
-          <div className="shift-form__actions">
+          <div className="shift-form__actions shift-form__actions--equal">
             <button type="submit" className="btn-primary" disabled={saving}>
-              {saving ? "保存中..." : "保存してもどる"}
+              {saving ? "保存中..." : "保存"}
             </button>
             <button
               type="button"
@@ -359,7 +456,7 @@ export function ShiftTypesSettingsPage() {
               onClick={() => navigate("/settings")}
               disabled={saving}
             >
-              キャンセル
+              もどる
             </button>
             <button
               type="button"

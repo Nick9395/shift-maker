@@ -1,7 +1,17 @@
-import { useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useState, type FormEvent, type KeyboardEvent } from "react";
 import { Navigate, useNavigate, useOutletContext } from "react-router-dom";
+import { fetchDuties } from "../api/duties";
+import { fetchStaffs } from "../api/staffs";
+import { useAuth } from "../auth/AuthContext";
+import { DutySelect } from "../components/DutySelect";
+import { SuggestInput } from "../components/SuggestInput";
 import { useShiftWizardPaths } from "../lib/shiftWizard";
-import { createEmptySheet, MAX_SHIFT_STAFF, type ShiftStaffDraft } from "../types/shift";
+import {
+  createEmptySheet,
+  MAX_SHIFT_STAFF,
+  type DutyMaster,
+  type ShiftStaffDraft,
+} from "../types/shift";
 import type { NewShiftWizardContext } from "./NewShiftLayout";
 
 function createStaffRow(): ShiftStaffDraft {
@@ -42,15 +52,51 @@ function initialRows(staff: ShiftStaffDraft[] | undefined): ShiftStaffDraft[] {
   return [createStaffRow()];
 }
 
-/** 新規シフト作成：職員名と職務の手入力 */
+/** 新規シフト作成：職員名はマスタ選択または手入力。職務はマスタから選択 */
 export function NewShiftStaffPage() {
   const { draft, setDraft } = useOutletContext<NewShiftWizardContext>();
   const navigate = useNavigate();
   const paths = useShiftWizardPaths();
+  const { token } = useAuth();
   const [rows, setRows] = useState<ShiftStaffDraft[]>(() =>
     initialRows(draft?.staff),
   );
+  const [staffOptions, setStaffOptions] = useState<
+    Array<{ id: string; label: string }>
+  >([]);
+  const [duties, setDuties] = useState<DutyMaster[]>([]);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!token) return;
+
+    let cancelled = false;
+    void Promise.allSettled([fetchStaffs(token), fetchDuties(token)]).then(
+      ([staffResult, dutyResult]) => {
+        if (cancelled) return;
+        if (staffResult.status === "fulfilled") {
+          setStaffOptions(
+            staffResult.value
+              .filter((staff) => staff.name.trim() !== "")
+              .map((staff) => ({ id: staff.id, label: staff.name })),
+          );
+        } else {
+          setStaffOptions([]);
+        }
+        if (dutyResult.status === "fulfilled") {
+          setDuties(
+            dutyResult.value.filter((duty) => duty.name.trim() !== ""),
+          );
+        } else {
+          setDuties([]);
+        }
+      },
+    );
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
 
   if (!draft) {
     return <Navigate to={paths.root} replace />;
@@ -116,7 +162,7 @@ export function NewShiftStaffPage() {
         return;
       }
       if (!row.duty1) {
-        setError(`${index + 1}行目の職務1を入力してください`);
+        setError(`${index + 1}行目の職務1を選択してください`);
         return;
       }
     }
@@ -140,7 +186,7 @@ export function NewShiftStaffPage() {
         autoComplete="off"
         noValidate
       >
-        <div className="shift-staff-table-wrap">
+        <div className="shift-staff-table-wrap shift-staff-table-wrap--suggest">
           <table className="shift-staff-table">
             <thead>
               <tr>
@@ -157,47 +203,38 @@ export function NewShiftStaffPage() {
               {rows.map((row, index) => (
                 <tr key={row.id}>
                   <td>
-                    <input
-                      type="text"
+                    <SuggestInput
                       maxLength={40}
-                      aria-label={`${index + 1}行目の職員氏名`}
+                      ariaLabel={`${index + 1}行目の職員氏名`}
                       value={row.name}
-                      onChange={(event) =>
-                        updateRow(row.id, "name", event.target.value)
-                      }
+                      options={staffOptions}
+                      emptyMessage="設定に職員が登録されていません"
+                      noMatchMessage="一致する職員がいません"
+                      onChange={(name) => updateRow(row.id, "name", name)}
                     />
                   </td>
                   <td>
-                    <input
-                      type="text"
-                      maxLength={40}
-                      aria-label={`${index + 1}行目の職務1`}
+                    <DutySelect
+                      ariaLabel={`${index + 1}行目の職務1`}
                       value={row.duty1}
-                      onChange={(event) =>
-                        updateRow(row.id, "duty1", event.target.value)
-                      }
+                      duties={duties}
+                      onChange={(value) => updateRow(row.id, "duty1", value)}
                     />
                   </td>
                   <td>
-                    <input
-                      type="text"
-                      maxLength={40}
-                      aria-label={`${index + 1}行目の職務2`}
+                    <DutySelect
+                      ariaLabel={`${index + 1}行目の職務2`}
                       value={row.duty2}
-                      onChange={(event) =>
-                        updateRow(row.id, "duty2", event.target.value)
-                      }
+                      duties={duties}
+                      onChange={(value) => updateRow(row.id, "duty2", value)}
                     />
                   </td>
                   <td>
-                    <input
-                      type="text"
-                      maxLength={40}
-                      aria-label={`${index + 1}行目の職務3`}
+                    <DutySelect
+                      ariaLabel={`${index + 1}行目の職務3`}
                       value={row.duty3}
-                      onChange={(event) =>
-                        updateRow(row.id, "duty3", event.target.value)
-                      }
+                      duties={duties}
+                      onChange={(value) => updateRow(row.id, "duty3", value)}
                     />
                   </td>
                   <td className="shift-staff-table__remove">
@@ -218,7 +255,7 @@ export function NewShiftStaffPage() {
         <div className="shift-staff-toolbar">
           <button
             type="button"
-            className="btn-secondary"
+            className="btn-add-row btn-add-row--wide"
             onClick={addRow}
             disabled={rows.length >= MAX_SHIFT_STAFF}
           >
