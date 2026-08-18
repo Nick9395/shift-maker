@@ -8,6 +8,7 @@ export type ShiftSummary = {
   start_date: string;
   end_date: string;
   public_holiday: number;
+  created_at: string;
   updated_at: string;
 };
 

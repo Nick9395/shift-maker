@@ -1,6 +1,18 @@
-import { useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useRef,
+  useState,
+  type MouseEvent,
+  type ReactNode,
+} from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { FlashToast, useFlash } from "./FlashToast";
+import { hintLinesForPath } from "../lib/pageHints";
+import {
+  isAtShiftCreateLimit,
+  SHIFT_CREATE_LIMIT_MESSAGE,
+} from "../lib/shiftLimit";
 
 function BrandMark() {
   return (
@@ -36,15 +48,41 @@ type AppShellProps = {
   children: ReactNode;
 };
 
+function isModifiedClick(event: MouseEvent) {
+  return event.metaKey || event.ctrlKey || event.shiftKey || event.altKey;
+}
+
 /** 認証後の共通シェル（サイドバー付き） */
 export function AppShell({ children }: AppShellProps) {
-  const { user, logout, welcomeMessage } = useAuth();
+  const { user, logout, welcomeMessage, token } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const { flashMessage, showFlash } = useFlash();
+  const startingRef = useRef(false);
   const isSheetPage =
     location.pathname === "/shifts/new/sheet" ||
     /^\/shifts\/\d+\/sheet$/.test(location.pathname);
+  const hintLines = hintLinesForPath(location.pathname);
+
+  const startNewShift = useCallback(() => {
+    if (startingRef.current) return;
+    startingRef.current = true;
+
+    void (async () => {
+      try {
+        if (token && (await isAtShiftCreateLimit(token))) {
+          showFlash(SHIFT_CREATE_LIMIT_MESSAGE);
+          return;
+        }
+        navigate("/shifts/new");
+      } catch {
+        navigate("/shifts/new");
+      } finally {
+        startingRef.current = false;
+      }
+    })();
+  }, [navigate, showFlash, token]);
 
   async function handleLogout() {
     await logout();
@@ -52,11 +90,13 @@ export function AppShell({ children }: AppShellProps) {
   }
 
   return (
-    <div
-      className={
-        sidebarOpen ? "app-shell" : "app-shell app-shell--sidebar-collapsed"
-      }
-    >
+    <>
+      <FlashToast message={flashMessage} />
+      <div
+        className={
+          sidebarOpen ? "app-shell" : "app-shell app-shell--sidebar-collapsed"
+        }
+      >
       <aside className="app-shell__sidebar">
         <div className="app-shell__sidebar-top">
           {sidebarOpen ? (
@@ -85,13 +125,18 @@ export function AppShell({ children }: AppShellProps) {
               end
               className={({ isActive }) => (isActive ? "is-active" : undefined)}
             >
-              シフト一覧
+              シフト表一覧
             </NavLink>
             <NavLink
               to="/shifts/new"
               className={({ isActive }) => (isActive ? "is-active" : undefined)}
+              onClick={(event) => {
+                if (isModifiedClick(event)) return;
+                event.preventDefault();
+                startNewShift();
+              }}
             >
-              新規シフト作成
+              新規シフト表作成
             </NavLink>
             <NavLink
               to="/settings"
@@ -99,6 +144,33 @@ export function AppShell({ children }: AppShellProps) {
             >
               設定
             </NavLink>
+            <div
+              className={
+                hintLines ? "app-shell__hint" : "app-shell__hint is-empty"
+              }
+            >
+              <button
+                type="button"
+                className="app-shell__nav-item"
+                aria-label="使い方のヒント"
+                aria-describedby={hintLines ? "app-shell-hint" : undefined}
+              >
+                💡 ヒント
+              </button>
+              {hintLines ? (
+                <div
+                  id="app-shell-hint"
+                  className="app-shell__hint-panel"
+                  role="tooltip"
+                >
+                  <ul>
+                    {hintLines.map((line) => (
+                      <li key={line}>{line}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
             <button
               type="button"
               className="app-shell__nav-item"
@@ -143,5 +215,6 @@ export function AppShell({ children }: AppShellProps) {
         </section>
       </main>
     </div>
+    </>
   );
 }

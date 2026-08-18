@@ -396,6 +396,7 @@ select {
 
 .app-shell__sidebar {
   position: relative;
+  z-index: 30;
   background:
     linear-gradient(180deg, #2c2622 0%, #1f1c1a 100%);
   color: var(--sidebar-text);
@@ -404,7 +405,7 @@ select {
   flex-direction: column;
   gap: 20px;
   height: 100svh;
-  overflow: auto;
+  overflow: visible;
 }
 
 .app-shell__sidebar::before {
@@ -556,6 +557,56 @@ select {
 
 .nav-disabled {
   opacity: 0.45;
+}
+
+.app-shell__hint {
+  position: relative;
+}
+
+.app-shell__hint.is-empty .app-shell__nav-item {
+  cursor: default;
+}
+
+.app-shell__hint.is-empty .app-shell__nav-item:hover {
+  background: transparent;
+  color: var(--sidebar-text);
+  opacity: 0.85;
+}
+
+.app-shell__hint-panel {
+  position: absolute;
+  left: calc(100% + 12px);
+  top: 0;
+  z-index: 40;
+  width: max-content;
+  max-width: 22rem;
+  padding: 10px 12px;
+  background: var(--header);
+  color: #fff;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(40, 30, 20, 0.22);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-4px);
+  transition:
+    opacity 0.12s ease,
+    transform 0.12s ease,
+    visibility 0.12s;
+}
+
+.app-shell__hint-panel ul {
+  margin: 0;
+  padding-left: 1.15em;
+}
+
+.app-shell__hint:hover .app-shell__hint-panel,
+.app-shell__hint:focus-within .app-shell__hint-panel {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(0);
 }
 
 .app-shell__main {
@@ -730,6 +781,192 @@ select {
   flex-direction: column;
 }
 
+/* ---------- ホーム ---------- */
+
+.home-page {
+  width: min(880px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.home-kicker {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--ink-soft);
+}
+
+.home-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.home-section__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.home-section__more {
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.home-section__more:hover {
+  color: var(--accent-hover);
+  text-decoration: none;
+}
+
+.shift-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  overflow: hidden;
+  padding: 20px 20px 18px 24px;
+  text-decoration: none;
+  color: var(--sidebar-text);
+  background:
+    linear-gradient(
+      105deg,
+      #241f1c 0%,
+      #2f2925 42%,
+      #3a312b 100%
+    );
+  box-shadow: 0 12px 28px rgba(40, 28, 16, 0.16);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.shift-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, #e08a4f, var(--accent) 55%, #8a3e16);
+}
+
+.shift-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    120% 140% at 0% 50%,
+    rgba(196, 92, 38, 0.22),
+    transparent 46%
+  );
+}
+
+.shift-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 36px rgba(40, 28, 16, 0.22);
+  text-decoration: none;
+  color: var(--sidebar-text);
+}
+
+.shift-card__name,
+.shift-card__meta,
+.shift-card__action {
+  position: relative;
+  z-index: 1;
+}
+
+.shift-card__name {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #f3d2b8;
+}
+
+.shift-card__meta {
+  font-size: 0.88rem;
+  font-weight: 500;
+  line-height: 1.5;
+  color: rgba(247, 239, 228, 0.78);
+}
+
+.shift-card__action {
+  margin-top: 4px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #e08a4f;
+}
+
+.shift-card--hero {
+  padding: 28px 28px 24px 32px;
+  box-shadow: 0 16px 36px rgba(40, 28, 16, 0.18);
+}
+
+.shift-card--hero .shift-card__name {
+  font-size: 1.4rem;
+}
+
+.shift-card--hero .shift-card__action {
+  margin-top: 6px;
+  font-size: 0.88rem;
+}
+
+.home-recent {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.home-recent .shift-card {
+  min-height: 100%;
+}
+
+.home-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 18px;
+  padding: 40px 32px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: 0 12px 28px rgba(60, 40, 20, 0.08);
+}
+
+.home-empty p {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ink-soft);
+}
+
+.home-empty__action {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.home-empty__action:hover {
+  text-decoration: none;
+  color: #fff;
+}
+
+@media (max-width: 768px) {
+  .home-recent {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 768px) {
   .app-shell,
   .app-shell--sidebar-collapsed {
@@ -807,9 +1044,23 @@ select {
   width: min(720px, 100%);
 }
 
-.shift-list-page h2 {
+.shift-list-page__title {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
   margin: 0 0 18px;
+}
+
+.shift-list-page h2 {
+  margin: 0;
   font-size: 1.2rem;
+}
+
+.shift-list-page__count {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+  font-weight: 600;
 }
 
 .shift-list {
@@ -818,39 +1069,7 @@ select {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-}
-
-.shift-list__item {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 16px 18px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  color: var(--ink);
-  text-decoration: none;
-  box-shadow: 0 8px 20px rgba(60, 40, 20, 0.08);
-}
-
-.shift-list__item:hover {
-  background: #fff;
-  color: var(--accent);
-  text-decoration: none;
-}
-
-.shift-list__name {
-  font-weight: 700;
-}
-
-.shift-list__meta {
-  font-size: 0.88rem;
-  color: var(--ink-soft);
-  font-weight: 500;
-}
-
-.shift-list__item:hover .shift-list__meta {
-  color: var(--accent);
+  gap: 12px;
 }
 
 .shift-list-empty {
@@ -871,7 +1090,7 @@ select {
   color: #fff;
 }
 
-/* ---------- 新規シフト作成 ---------- */
+/* ---------- 新規シフト表作成 ---------- */
 
 .shift-form-page {
   width: min(480px, 100%);
@@ -1071,11 +1290,11 @@ select {
 
 .shift-staff-table--types {
   width: max-content;
-  min-width: 980px;
+  min-width: 1080px;
 }
 
 .shift-staff-table--duties {
-  min-width: 520px;
+  min-width: 620px;
 }
 
 .shift-staff-table th {
@@ -1342,6 +1561,37 @@ select {
 .shift-staff-table__remove {
   width: 4.5rem;
   text-align: center;
+}
+
+.shift-staff-table__reorder {
+  width: 8rem;
+  white-space: nowrap;
+}
+
+.row-reorder {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.row-reorder__btn {
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.row-reorder__btn:hover:not(:disabled) {
+  background: var(--bg);
+  border-color: var(--accent);
+}
+
+.row-reorder__btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .shift-staff-toolbar {
@@ -1848,6 +2098,11 @@ select {
   cursor: var(--sheet-brush-cursor);
 }
 
+.shift-sheet-page.is-erasing,
+.shift-sheet-page.is-erasing * {
+  cursor: var(--sheet-erase-cursor);
+}
+
 .shift-sheet-table {
   border-collapse: separate;
   border-spacing: 0;
@@ -1915,6 +2170,11 @@ select {
 
 .shift-sheet-table .col-sum-0 {
   border-left: 2px solid var(--border);
+}
+
+.shift-sheet-table .col-sum.is-mismatch {
+  color: var(--danger);
+  font-weight: 700;
 }
 
 .shift-sheet-month {
@@ -2003,6 +2263,11 @@ select {
   font-size: 0.7rem;
   line-height: 1.3;
   color: var(--ink-soft);
+}
+
+.shift-sheet-counts .is-short {
+  color: var(--danger);
+  font-weight: 700;
 }
 
 .shift-sheet-cell {

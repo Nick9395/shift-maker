@@ -5,6 +5,8 @@ import { ApiError } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { AppShell } from "../components/AppShell";
 import { FlashToast, useFlash } from "../components/FlashToast";
+import { RowReorderButtons } from "../components/RowReorderButtons";
+import { moveItem } from "../lib/moveItem";
 import {
   createEmptyStaff,
   MAX_SHIFT_STAFF,
@@ -89,6 +91,10 @@ export function StaffSettingsPage() {
     });
   }
 
+  function moveRow(index: number, offset: -1 | 1) {
+    setRows((current) => moveItem(current, index, offset));
+  }
+
   function handleKeyDown(event: KeyboardEvent<HTMLFormElement>) {
     if (event.key === "Enter" && event.target instanceof HTMLInputElement) {
       event.preventDefault();
@@ -154,6 +160,9 @@ export function StaffSettingsPage() {
                   <tr>
                     <th scope="col">職員氏名</th>
                     <th scope="col">
+                      <span className="visually-hidden">並び替え</span>
+                    </th>
+                    <th scope="col">
                       <span className="visually-hidden">削除</span>
                     </th>
                   </tr>
@@ -170,6 +179,13 @@ export function StaffSettingsPage() {
                           onChange={(event) =>
                             updateRow(row.id, event.target.value)
                           }
+                        />
+                      </td>
+                      <td className="shift-staff-table__reorder">
+                        <RowReorderButtons
+                          index={index}
+                          total={rows.length}
+                          onMove={(offset) => moveRow(index, offset)}
                         />
                       </td>
                       <td className="shift-staff-table__remove">

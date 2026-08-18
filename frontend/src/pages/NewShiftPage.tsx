@@ -13,7 +13,7 @@ function parseHolidayCount(raw: string): number | null {
   return value;
 }
 
-/** 新規シフト作成の初期設定（名称・期間・公休数） */
+/** 新規シフト表作成の初期設定（名称・期間・公休数） */
 export function NewShiftPage() {
   const { draft, setDraft, cancelPath = "/home" } =
     useOutletContext<NewShiftWizardContext>();
@@ -76,7 +76,7 @@ export function NewShiftPage() {
 
   return (
     <div className="shift-form-page">
-      <h2>{isEdit ? "シフトの初期設定" : "新規シフト作成"}</h2>
+      <h2>{isEdit ? "シフトの初期設定" : "新規シフト表作成"}</h2>
       <form className="shift-form" onSubmit={handleSubmit} noValidate>
         <label>
           シフト名

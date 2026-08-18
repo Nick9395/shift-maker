@@ -5,6 +5,8 @@ import { ApiError } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { AppShell } from "../components/AppShell";
 import { FlashToast, useFlash } from "../components/FlashToast";
+import { RowReorderButtons } from "../components/RowReorderButtons";
+import { moveItem } from "../lib/moveItem";
 import {
   createEmptyDuty,
   isValidDutyAbbr,
@@ -95,6 +97,10 @@ export function DutiesSettingsPage() {
     });
   }
 
+  function moveRow(index: number, offset: -1 | 1) {
+    setRows((current) => moveItem(current, index, offset));
+  }
+
   function handleKeyDown(event: KeyboardEvent<HTMLFormElement>) {
     if (event.key === "Enter" && event.target instanceof HTMLInputElement) {
       event.preventDefault();
@@ -167,6 +173,9 @@ export function DutiesSettingsPage() {
                     <th scope="col">職務名</th>
                     <th scope="col">略称（全角3文字以内）</th>
                     <th scope="col">
+                      <span className="visually-hidden">並び替え</span>
+                    </th>
+                    <th scope="col">
                       <span className="visually-hidden">削除</span>
                     </th>
                   </tr>
@@ -198,6 +207,13 @@ export function DutiesSettingsPage() {
                               event.target.value,
                             )
                           }
+                        />
+                      </td>
+                      <td className="shift-staff-table__reorder">
+                        <RowReorderButtons
+                          index={index}
+                          total={rows.length}
+                          onMove={(offset) => moveRow(index, offset)}
                         />
                       </td>
                       <td className="shift-staff-table__remove">

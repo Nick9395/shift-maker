@@ -1,6 +1,9 @@
 /** 1シフトに登録できる職員の上限 */
 export const MAX_SHIFT_STAFF = 60;
 
+/** 1ユーザーが保存できるシフト表の上限 */
+export const MAX_SHIFTS = 30;
+
 /** 設定画面の職員マスタ */
 export type StaffMaster = {
   id: string;
@@ -207,7 +210,7 @@ export function sheetCellKey(staffId: string, isoDate: string): string {
   return `${staffId}:${isoDate}`;
 }
 
-/** 新規シフト作成ウィザードの入力途中データ */
+/** 新規シフト表作成ウィザードの入力途中データ */
 export type NewShiftDraft = {
   /** 保存済みならサーバーの勤務表ID */
   serverId?: number;

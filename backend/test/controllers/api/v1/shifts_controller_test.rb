@@ -26,6 +26,7 @@ module Api
         assert_equal 1, body["shifts"].size
         assert_equal "8月勤務表", body["shifts"].first["name"]
         assert_equal "2026-08-01", body["shifts"].first["start_date"]
+        assert body["shifts"].first["created_at"].present?
       end
 
       test "勤務表を保存するとマスと予定が残る" do
@@ -73,6 +74,46 @@ module Api
         other_headers = auth_headers_for(@other)
         get api_v1_shift_path(id), headers: other_headers, as: :json
         assert_response :not_found
+      end
+
+      test "勤務表は30件を超えて新規保存できない" do
+        DisplayWidth::MAX_SHIFTS.times do |index|
+          Shift.create!(
+            user: @user,
+            name: "勤務表#{index + 1}",
+            start_date: "2026-08-01",
+            end_date: "2026-08-03",
+            public_holiday: 0,
+            all_locked: false
+          )
+        end
+
+        headers = auth_headers_for(@user)
+        post api_v1_shifts_path, params: { shift: valid_payload }, headers: headers, as: :json
+        assert_response :unprocessable_entity
+        body = JSON.parse(response.body)
+        assert_includes body["message"], "30件まで"
+        assert_equal DisplayWidth::MAX_SHIFTS, Shift.where(user: @user).count
+      end
+
+      test "上限に達していても既存の勤務表は更新できる" do
+        DisplayWidth::MAX_SHIFTS.times do |index|
+          Shift.create!(
+            user: @user,
+            name: "勤務表#{index + 1}",
+            start_date: "2026-08-01",
+            end_date: "2026-08-03",
+            public_holiday: 0,
+            all_locked: false
+          )
+        end
+        existing = Shift.where(user: @user).order(:id).first
+        headers = auth_headers_for(@user)
+        payload = valid_payload.merge(name: "更新後の勤務表")
+        patch api_v1_shift_path(existing.id), params: { shift: payload }, headers: headers, as: :json
+        assert_response :success
+        assert_equal "更新後の勤務表", existing.reload.name
+        assert_equal DisplayWidth::MAX_SHIFTS, Shift.where(user: @user).count
       end
 
       test "シフト名が空なら保存できない" do

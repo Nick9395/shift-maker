@@ -23,6 +23,8 @@ import {
   fromIsoDate,
   jaWeekday,
 } from "../lib/date";
+import { countDutiesForDate, isDutyCountShort } from "../lib/dutyCounts";
+import { countStaffSummary, SUMMARY_COLUMNS, type SummaryColumn } from "../lib/shiftSummary";
 import { loadShiftTypes } from "../lib/shiftTypeStore";
 import { useShiftWizardPaths } from "../lib/shiftWizard";
 import {
@@ -39,7 +41,6 @@ import {
 } from "../types/shift";
 import type { NewShiftWizardContext } from "./NewShiftLayout";
 
-const SUMMARY_COLUMNS = ["出勤", "公休", "年休", "時間休", "特休"] as const;
 const ERASER_TOOL_ID = "__eraser__";
 
 type InteractionMode = "idle" | "paint" | "pan";
@@ -58,10 +59,33 @@ function formatStaffDuties(
   return labels.length > 0 ? labels.join("/") : "—";
 }
 
-function formatDutyCount(row: DutyCountDraft): string {
-  const name = row.dutyId.trim() === "" ? "未選択" : row.dutyId;
-  const count = row.requiredCount.trim() === "" ? "—" : row.requiredCount;
-  return `${name}(${count})`;
+function formatDutyCount(
+  row: DutyCountDraft,
+  dutyByName: Map<string, string>,
+  actual: number,
+): string {
+  const name = row.dutyId.trim();
+  const label = name === "" ? "未選択" : dutyByName.get(name) || name;
+  const required = row.requiredCount.trim();
+  if (required === "") return `${label} ${actual}`;
+  return `${label} ${actual}/${required}`;
+}
+
+function summaryCells(
+  totals: Record<SummaryColumn, number>,
+  holidayCount: number,
+) {
+  return SUMMARY_COLUMNS.map((label, index) => {
+    const mismatch = label === "公休" && totals[label] !== holidayCount;
+    return (
+      <td
+        key={label}
+        className={`col-sum col-sum-${index}${mismatch ? " is-mismatch" : ""}`}
+      >
+        {totals[label]}
+      </td>
+    );
+  });
 }
 
 function dateClassName(iso: string): string {
@@ -272,6 +296,7 @@ export function NewShiftSheetPage() {
   const lockedIdsRef = useRef<string[]>([]);
   const allLockedRef = useRef(false);
   const selectedTypeIdRef = useRef<string | null>(null);
+  const eraseOverrideRef = useRef(false);
   const interactionRef = useRef<InteractionMode>("idle");
   const panRef = useRef({
     pointerId: 0,
@@ -297,6 +322,24 @@ export function NewShiftSheetPage() {
     }
     return map;
   }, [duties]);
+
+  const dutyTotalsByDate = useMemo(() => {
+    if (!draft) return new Map<string, Map<string, number>>();
+    const result = new Map<string, Map<string, number>>();
+    for (const iso of dates) {
+      result.set(
+        iso,
+        countDutiesForDate({
+          staff: draft.staff,
+          dutyCounts: draft.dutyCounts,
+          cells: draft.sheet.cells,
+          types: visibleShiftTypes,
+          isoDate: iso,
+        }),
+      );
+    }
+    return result;
+  }, [draft, dates, visibleShiftTypes]);
 
   useEffect(() => {
     let cancelled = false;
@@ -557,14 +600,15 @@ export function NewShiftSheetPage() {
 
   function paintCell(staffId: string, isoDate: string) {
     const typeId = selectedTypeIdRef.current;
-    if (!typeId) return;
+    const erase = eraseOverrideRef.current || typeId === ERASER_TOOL_ID;
+    if (!erase && !typeId) return;
     if (allLockedRef.current) return;
 
     const key = sheetCellKey(staffId, isoDate);
     const existing = cellsRef.current[key];
     if (existing && lockedIdsRef.current.includes(existing)) return;
 
-    if (typeId === ERASER_TOOL_ID) {
+    if (erase) {
       if (!existing) return;
       const nextCells = { ...cellsRef.current };
       delete nextCells[key];
@@ -583,15 +627,17 @@ export function NewShiftSheetPage() {
   function endInteraction(event: ReactPointerEvent<HTMLDivElement>) {
     if (interactionRef.current === "idle") return;
     interactionRef.current = "idle";
+    eraseOverrideRef.current = false;
     const page = pageRef.current;
-    page?.classList.remove("is-painting", "is-panning");
+    page?.classList.remove("is-painting", "is-panning", "is-erasing");
     if (page?.hasPointerCapture(event.pointerId)) {
       page.releasePointerCapture(event.pointerId);
     }
   }
 
   function handlePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
-    if (event.button !== 0) return;
+    const isEraseButton = event.button === 2;
+    if (event.button !== 0 && !isEraseButton) return;
     hideTooltip();
 
     const page = pageRef.current;
@@ -599,13 +645,16 @@ export function NewShiftSheetPage() {
     if (!page || !scroller) return;
 
     const paintTarget = readPaintCell(event.target);
-    if (
+    const canPaintCell =
       paintTarget &&
-      selectedTypeIdRef.current &&
       !allLockedRef.current &&
-      !isPlanInputTarget(event.target)
+      !isPlanInputTarget(event.target);
+    if (
+      canPaintCell &&
+      (isEraseButton || selectedTypeIdRef.current)
     ) {
       event.preventDefault();
+      eraseOverrideRef.current = isEraseButton;
       panRef.current = {
         pointerId: event.pointerId,
         startX: event.clientX,
@@ -615,12 +664,13 @@ export function NewShiftSheetPage() {
       };
       interactionRef.current = "paint";
       page.classList.add("is-painting");
+      if (isEraseButton) page.classList.add("is-erasing");
       page.setPointerCapture(event.pointerId);
       paintCell(paintTarget.staffId, paintTarget.isoDate);
       return;
     }
 
-    if (shouldSkipPan(event.target)) return;
+    if (isEraseButton || shouldSkipPan(event.target)) return;
 
     event.preventDefault();
     interactionRef.current = "pan";
@@ -665,6 +715,12 @@ export function NewShiftSheetPage() {
     endInteraction(event);
   }
 
+  function handleContextMenu(event: ReactMouseEvent<HTMLDivElement>) {
+    if (readPaintCell(event.target)) {
+      event.preventDefault();
+    }
+  }
+
   return (
     <div
       ref={pageRef}
@@ -675,15 +731,19 @@ export function NewShiftSheetPage() {
         .filter(Boolean)
         .join(" ")}
       style={
-        brushCursorCss
-          ? ({ "--sheet-brush-cursor": brushCursorCss } as CSSProperties)
-          : undefined
+        {
+          "--sheet-erase-cursor": eraserCursor(),
+          ...(brushCursorCss
+            ? { "--sheet-brush-cursor": brushCursorCss }
+            : {}),
+        } as CSSProperties
       }
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
       onLostPointerCapture={handleLostPointerCapture}
+      onContextMenu={handleContextMenu}
       onDragStart={(event) => event.preventDefault()}
     >
       <FlashToast message={flashMessage} />
@@ -938,11 +998,15 @@ export function NewShiftSheetPage() {
                     </td>
                   );
                 })}
-                {SUMMARY_COLUMNS.map((label, index) => (
-                  <td key={label} className={`col-sum col-sum-${index}`}>
-                    —
-                  </td>
-                ))}
+                {summaryCells(
+                  countStaffSummary(
+                    member,
+                    dates,
+                    cells,
+                    visibleShiftTypes,
+                  ),
+                  currentDraft.holidayCount,
+                )}
               </tr>
             ))}
             <tr className="shift-sheet-count-row">
@@ -953,9 +1017,19 @@ export function NewShiftSheetPage() {
               {dates.map((iso) => (
                 <td key={iso} className={`col-date ${dateClassName(iso)}`}>
                   <ul className="shift-sheet-counts">
-                    {currentDraft.dutyCounts.map((row) => (
-                      <li key={row.id}>{formatDutyCount(row)}</li>
-                    ))}
+                    {currentDraft.dutyCounts.map((row) => {
+                      const actual =
+                        dutyTotalsByDate.get(iso)?.get(row.id) ?? 0;
+                      const short = isDutyCountShort(row, actual);
+                      return (
+                        <li
+                          key={row.id}
+                          className={short ? "is-short" : undefined}
+                        >
+                          {formatDutyCount(row, dutyByName, actual)}
+                        </li>
+                      );
+                    })}
                   </ul>
                 </td>
               ))}

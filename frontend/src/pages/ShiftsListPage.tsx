@@ -6,6 +6,7 @@ import { useAuth } from "../auth/AuthContext";
 import { AppShell } from "../components/AppShell";
 import { FlashToast, useFlash } from "../components/FlashToast";
 import { formatJaDate } from "../lib/date";
+import { MAX_SHIFTS } from "../types/shift";
 
 type ShiftsListLocationState = {
   flash?: string;
@@ -62,7 +63,14 @@ export function ShiftsListPage() {
     <AppShell>
       <FlashToast message={flashMessage} />
       <div className="shift-list-page">
-        <h2>シフト一覧</h2>
+        <div className="shift-list-page__title">
+          <h2>シフト表一覧</h2>
+          {shifts != null ? (
+            <p className="shift-list-page__count">
+              {shifts.length}/{MAX_SHIFTS}
+            </p>
+          ) : null}
+        </div>
         {error ? <p className="auth-error">{error}</p> : null}
         {shifts == null && !error ? (
           <p className="auth-muted">読み込み中...</p>
@@ -71,7 +79,7 @@ export function ShiftsListPage() {
           <div className="shift-list-empty">
             <p className="auth-muted">保存したシフト表はまだありません。</p>
             <Link className="btn-primary shift-list-empty__action" to="/shifts/new">
-              新規シフト作成
+              新規シフト表作成
             </Link>
           </div>
         ) : null}
@@ -79,14 +87,15 @@ export function ShiftsListPage() {
           <ul className="shift-list">
             {shifts.map((shift) => (
               <li key={shift.id}>
-                <Link className="shift-list__item" to={`/shifts/${shift.id}/sheet`}>
-                  <span className="shift-list__name">{shift.name}</span>
-                  <span className="shift-list__meta">
+                <Link className="shift-card" to={`/shifts/${shift.id}/sheet`}>
+                  <span className="shift-card__name">{shift.name}</span>
+                  <span className="shift-card__meta">
                     {formatJaDate(shift.start_date)} 〜 {formatJaDate(shift.end_date)}
                     {shift.updated_at
-                      ? ` ／ 更新 ${formatUpdatedAt(shift.updated_at)}`
+                      ? ` ／ 最終更新日 ${formatUpdatedAt(shift.updated_at)}`
                       : ""}
                   </span>
+                  <span className="shift-card__action">編集する</span>
                 </Link>
               </li>
             ))}
