@@ -26,6 +26,11 @@ module Api
         render_invalid(e)
       end
 
+      def destroy
+        shift_record.destroy!
+        head :no_content
+      end
+
       private
 
       def shift_record

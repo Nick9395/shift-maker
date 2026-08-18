@@ -1,7 +1,38 @@
 /** 1シフトに登録できる職員の上限 */
 export const MAX_SHIFT_STAFF = 60;
 
-/** 新規シフトに割り当てる職員（職務は手入力。将来は設定から選択） */
+/** 設定画面の職員マスタ */
+export type StaffMaster = {
+  id: string;
+  name: string;
+};
+
+export function createEmptyStaff(): StaffMaster {
+  return {
+    id: crypto.randomUUID(),
+    name: "",
+  };
+}
+
+/** 設定画面の職務マスタ上限 */
+export const MAX_DUTIES = 30;
+
+/** 設定画面の職務マスタ */
+export type DutyMaster = {
+  id: string;
+  name: string;
+  abbreviation: string;
+};
+
+export function createEmptyDuty(): DutyMaster {
+  return {
+    id: crypto.randomUUID(),
+    name: "",
+    abbreviation: "",
+  };
+}
+
+/** 新規シフトに割り当てる職員（氏名はマスタ選択または手入力。職務はマスタから選択） */
 export type ShiftStaffDraft = {
   id: string;
   name: string;
@@ -10,7 +41,7 @@ export type ShiftStaffDraft = {
   duty3: string;
 };
 
-/** 職務者カウント設定（職務はマスタから選択。マスタ未実装のため dutyId は空） */
+/** 職務者カウント設定（職務はマスタから選択） */
 export type DutyCountDraft = {
   id: string;
   dutyId: string;
@@ -37,16 +68,26 @@ export const SHIFT_TYPE_CATEGORIES = [
 
 export type ShiftTypeCategory = (typeof SHIFT_TYPE_CATEGORIES)[number];
 
-export const SHIFT_TYPE_COLORS = ["赤", "ピンク", "紫", "緑", "オレンジ"] as const;
+export const SHIFT_TYPE_COLORS = [
+  "赤",
+  "オレンジ",
+  "黄",
+  "緑",
+  "青",
+  "紫",
+  "灰",
+] as const;
 
 export type ShiftTypeColor = (typeof SHIFT_TYPE_COLORS)[number];
 
 export const SHIFT_TYPE_COLOR_HEX: Record<ShiftTypeColor, string> = {
   赤: "#c62828",
-  ピンク: "#d4537e",
-  紫: "#6a4c9c",
-  緑: "#2e7d4f",
   オレンジ: "#c45c26",
+  黄: "#ffff00",
+  緑: "#00a300",
+  青: "#0055ff",
+  紫: "#b000bd",
+  灰: "#bdbdbd",
 };
 
 const HEX_COLOR_PATTERN = /^#([0-9a-fA-F]{6})$/;
@@ -61,6 +102,16 @@ export function resolveShiftTypeColor(iconColor: string): string | undefined {
     return iconColor.toLowerCase();
   }
   return undefined;
+}
+
+const PRESET_COLOR_HEX = new Set(
+  Object.values(SHIFT_TYPE_COLOR_HEX).map((hex) => hex.toLowerCase()),
+);
+
+/** 基本5色のいずれかなら true */
+export function isPresetShiftTypeColor(iconColor: string): boolean {
+  const resolved = resolveShiftTypeColor(iconColor);
+  return resolved != null && PRESET_COLOR_HEX.has(resolved.toLowerCase());
 }
 
 /** 表示欄の最大幅（半角1・全角2でカウント） */
@@ -93,6 +144,13 @@ export function shiftTypeAbbrWidth(value: string): number {
 
 export function isValidShiftTypeAbbr(value: string): boolean {
   return shiftTypeAbbrWidth(value) <= MAX_SHIFT_TYPE_ABBR_WIDTH;
+}
+
+/** 職務略称の最大幅（全角3文字＝半角6） */
+export const MAX_DUTY_ABBR_WIDTH = 6;
+
+export function isValidDutyAbbr(value: string): boolean {
+  return textDisplayWidth(value) <= MAX_DUTY_ABBR_WIDTH;
 }
 
 /** 予定欄の最大幅（全角28文字＝半角56） */

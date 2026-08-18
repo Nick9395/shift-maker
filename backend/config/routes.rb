@@ -22,7 +22,11 @@ Rails.application.routes.draw do
       get "me", to: "users/profiles#show"
       get "shift_types", to: "shift_types#index"
       put "shift_types", to: "shift_types#update"
-      resources :shifts, only: %i[index show create update]
+      get "staffs", to: "staffs#index"
+      put "staffs", to: "staffs#update"
+      get "roles", to: "roles#index"
+      put "roles", to: "roles#update"
+      resources :shifts, only: %i[index show create update destroy]
     end
   end
 

@@ -82,6 +82,27 @@ module Api
         assert_response :unprocessable_entity
       end
 
+      test "勤務表を削除できる" do
+        headers = auth_headers_for(@user)
+        post api_v1_shifts_path, params: { shift: valid_payload }, headers: headers, as: :json
+        id = JSON.parse(response.body).dig("shift", "id")
+
+        delete api_v1_shift_path(id), headers: headers, as: :json
+        assert_response :no_content
+        assert_equal 0, Shift.where(user: @user).count
+      end
+
+      test "他人の勤務表は削除できない" do
+        headers = auth_headers_for(@user)
+        post api_v1_shifts_path, params: { shift: valid_payload }, headers: headers, as: :json
+        id = JSON.parse(response.body).dig("shift", "id")
+
+        other_headers = auth_headers_for(@other)
+        delete api_v1_shift_path(id), headers: other_headers, as: :json
+        assert_response :not_found
+        assert_equal 1, Shift.where(user: @user).count
+      end
+
       private
 
       def auth_headers_for(user)
