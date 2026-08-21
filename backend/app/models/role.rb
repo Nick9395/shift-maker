@@ -15,7 +15,7 @@ class Role < ApplicationRecord
   belongs_to :user
   has_many :shift_role_counts, dependent: :nullify
 
-  validates :name, presence: true
+  validates :name, presence: true, length: { maximum: 20 }
   validates :name, uniqueness: { scope: :user_id }
   validates :client_uuid, presence: true
   validates :client_uuid, uniqueness: { scope: :user_id }

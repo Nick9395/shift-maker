@@ -16,7 +16,7 @@ import { copySettingsFromHistory } from "../lib/copyShiftHistory";
 import { formatJaDate, inclusiveDayCount } from "../lib/date";
 import { useShiftWizardPaths } from "../lib/shiftWizard";
 import { clearWizardPark } from "../lib/wizardPark";
-import { createEmptySheet } from "../types/shift";
+import { createEmptySheet, MAX_SHIFT_NAME } from "../types/shift";
 import type { NewShiftWizardContext } from "./NewShiftLayout";
 
 function parseHolidayCount(raw: string): number | null {
@@ -60,7 +60,7 @@ function SetupFields({
           type="text"
           autoComplete="off"
           required
-          maxLength={80}
+          maxLength={MAX_SHIFT_NAME}
           value={name}
           onChange={(event) => onNameChange(event.target.value)}
         />

@@ -10,6 +10,6 @@ class ShiftStaff < ApplicationRecord
   belongs_to :role_3, class_name: "Role", optional: true
   has_many :shift_entries, dependent: :destroy
 
-  validates :staff_name, presence: true
+  validates :staff_name, presence: true, length: { maximum: 30 }
   validates :sort_order, presence: true, numericality: { only_integer: true }
 end

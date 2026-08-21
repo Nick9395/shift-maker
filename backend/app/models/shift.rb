@@ -10,7 +10,7 @@ class Shift < ApplicationRecord
   has_many :shift_type_locks, dependent: :destroy
   has_many :shift_entries, dependent: :delete_all
 
-  validates :name, presence: true, length: { maximum: 80 }
+  validates :name, presence: true, length: { maximum: 40 }
   validates :start_date, presence: true
   validates :end_date, presence: true
   validates :public_holiday, presence: true,

@@ -11,6 +11,7 @@ import { useShiftWizardPaths } from "../lib/shiftWizard";
 import {
   createEmptySheet,
   MAX_SHIFT_STAFF,
+  MAX_STAFF_NAME,
   type DutyMaster,
   type ShiftStaffDraft,
 } from "../types/shift";
@@ -304,7 +305,7 @@ export function NewShiftStaffPage() {
                         )
                       ) : null}
                       <SuggestInput
-                        maxLength={40}
+                        maxLength={MAX_STAFF_NAME}
                         ariaLabel={`${index + 1}行目の職員氏名`}
                         value={row.name}
                         options={staffOptions}
@@ -376,7 +377,7 @@ export function NewShiftStaffPage() {
             onClick={addRow}
             disabled={rows.length >= MAX_SHIFT_STAFF}
           >
-            行追加
+            ＋ 行追加
           </button>
           <p className="shift-staff-count">
             職員登録数 {filledCount} / {MAX_SHIFT_STAFF}

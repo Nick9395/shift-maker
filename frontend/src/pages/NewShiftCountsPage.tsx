@@ -348,11 +348,11 @@ export function NewShiftCountsPage() {
                       })}
                       <button
                         type="button"
-                        className="shift-count-types__add"
+                        className="btn-add-row shift-count-types__add"
                         onClick={() => addType(row.id)}
                         disabled={!canAddTypeToRow(row)}
                       >
-                        種別を追加
+                        ＋ シフト種別を追加
                       </button>
                     </div>
                   </td>
@@ -414,7 +414,7 @@ export function NewShiftCountsPage() {
             onClick={addRow}
             disabled={!canAddRow}
           >
-            行追加
+            ＋ 行追加
           </button>
         </div>
 

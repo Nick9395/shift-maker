@@ -58,6 +58,15 @@ module Api
         assert_response :unprocessable_entity
       end
 
+      test "職務名が20文字を超えると保存できない" do
+        headers = auth_headers_for(@user)
+        put "/api/v1/roles",
+            params: { roles: [ role_payload.merge(name: "あ" * 21) ] },
+            headers: headers,
+            as: :json
+        assert_response :unprocessable_entity
+      end
+
       test "略称が全角3文字を超えると保存できない" do
         headers = auth_headers_for(@user)
         put "/api/v1/roles",

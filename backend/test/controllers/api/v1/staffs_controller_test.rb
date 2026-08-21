@@ -57,6 +57,15 @@ module Api
         assert_response :unprocessable_entity
       end
 
+      test "氏名が30文字を超えると保存できない" do
+        headers = auth_headers_for(@user)
+        put "/api/v1/staffs",
+            params: { staffs: [ staff_payload.merge(name: "あ" * 31) ] },
+            headers: headers,
+            as: :json
+        assert_response :unprocessable_entity
+      end
+
       private
 
       def auth_headers_for(user)

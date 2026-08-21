@@ -11,6 +11,7 @@ import { useSettingsReturnTo } from "../lib/settingsReturnTo";
 import {
   createEmptyShiftType,
   isValidShiftTypeAbbr,
+  MAX_SHIFT_TYPE_NAME,
   MAX_SHIFT_TYPES,
   SHIFT_TYPE_CATEGORIES,
   SHIFT_TYPE_COLOR_HEX,
@@ -270,7 +271,7 @@ export function ShiftTypesSettingsPage() {
     for (const [index, row] of rows.entries()) {
       if (isBlankRow(row)) continue;
       if (!row.name.trim()) {
-        setError(`${index + 1}行目のシフト名を入力してください`);
+        setError(`${index + 1}行目のシフト種別名を入力してください`);
         return;
       }
       if (!isValidShiftTypeAbbr(row.abbreviation.trim())) {
@@ -326,7 +327,7 @@ export function ShiftTypesSettingsPage() {
             <table className="shift-staff-table shift-staff-table--types">
               <thead>
                 <tr>
-                  <th scope="col">シフト名</th>
+                  <th scope="col">シフト種別名</th>
                   <th scope="col">表示</th>
                   <th scope="col">出勤時間</th>
                   <th scope="col">退勤時間</th>
@@ -347,8 +348,8 @@ export function ShiftTypesSettingsPage() {
                     <td>
                       <input
                         type="text"
-                        maxLength={40}
-                        aria-label={`${index + 1}行目のシフト名`}
+                        maxLength={MAX_SHIFT_TYPE_NAME}
+                        aria-label={`${index + 1}行目のシフト種別名`}
                         value={row.name}
                         onChange={(event) =>
                           updateRow(row.id, "name", event.target.value)
@@ -454,7 +455,7 @@ export function ShiftTypesSettingsPage() {
               onClick={addRow}
               disabled={rows.length >= MAX_SHIFT_TYPES}
             >
-              行追加
+              ＋ 行追加
             </button>
             <p className="shift-staff-count">
               登録数 {filledCount} / {MAX_SHIFT_TYPES}

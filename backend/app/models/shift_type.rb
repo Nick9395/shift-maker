@@ -31,7 +31,7 @@ class ShiftType < ApplicationRecord
 
   validates :client_uuid, presence: true
   validates :client_uuid, uniqueness: { scope: :user_id }
-  validates :name, presence: true
+  validates :name, presence: true, length: { maximum: 20 }
   validates :status, inclusion: { in: STATUS_LABELS.keys }, allow_nil: true
   validates :sort_order, numericality: { only_integer: true }
   validate :display_name_width
