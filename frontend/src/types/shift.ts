@@ -4,6 +4,12 @@ export const MAX_SHIFT_STAFF = 60;
 /** 1ユーザーが保存できるシフト表の上限 */
 export const MAX_SHIFTS = 30;
 
+/** シフト表の名前の最大文字数 */
+export const MAX_SHIFT_NAME = 40;
+
+/** 職員氏名の最大文字数 */
+export const MAX_STAFF_NAME = 30;
+
 /** 設定画面の職員マスタ */
 export type StaffMaster = {
   id: string;
@@ -16,6 +22,9 @@ export function createEmptyStaff(): StaffMaster {
     name: "",
   };
 }
+
+/** 職務名の最大文字数 */
+export const MAX_DUTY_NAME = 20;
 
 /** 設定画面の職務マスタ上限 */
 export const MAX_DUTIES = 30;
@@ -65,6 +74,9 @@ export type ShiftCountDraft = {
   requiredCount: string;
   shortageNotice: boolean;
 };
+
+/** シフト種別名の最大文字数 */
+export const MAX_SHIFT_TYPE_NAME = 20;
 
 /** シフト種別マスタの上限 */
 export const MAX_SHIFT_TYPES = 30;

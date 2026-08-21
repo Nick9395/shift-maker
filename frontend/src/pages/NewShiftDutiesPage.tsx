@@ -306,7 +306,7 @@ export function NewShiftDutiesPage() {
             onClick={addRow}
             disabled={!canAddRow}
           >
-            行追加
+            ＋ 行追加
           </button>
         </div>
 

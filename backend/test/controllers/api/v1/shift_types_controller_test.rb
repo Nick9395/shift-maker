@@ -49,6 +49,15 @@ module Api
         assert_equal 0, @user.shift_types.count
       end
 
+      test "シフト種別名が20文字を超えると保存できない" do
+        headers = auth_headers_for(@user)
+        put "/api/v1/shift_types",
+            params: { shift_types: [ type_payload.merge(name: "あ" * 21) ] },
+            headers: headers,
+            as: :json
+        assert_response :unprocessable_entity
+      end
+
       private
 
       def auth_headers_for(user)

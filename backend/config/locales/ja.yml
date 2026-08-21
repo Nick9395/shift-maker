@@ -16,11 +16,13 @@ ja:
         public_holiday: 公休数
       staff:
         name: 職員氏名
+      shift_staff:
+        staff_name: 職員氏名
       role:
         name: 職務名
         abbreviation: 略称
       shift_type:
-        name: シフト名
+        name: シフト種別名
         display_name: 表示
       shift_plan:
         body: 予定

@@ -160,6 +160,13 @@ module Api
         assert_response :unprocessable_entity
       end
 
+      test "シフト名が40文字を超えると保存できない" do
+        headers = auth_headers_for(@user)
+        payload = valid_payload.merge(name: "あ" * 41)
+        post api_v1_shifts_path, params: { shift: payload }, headers: headers, as: :json
+        assert_response :unprocessable_entity
+      end
+
       test "勤務表を削除できる" do
         headers = auth_headers_for(@user)
         post api_v1_shifts_path, params: { shift: valid_payload }, headers: headers, as: :json

@@ -11,6 +11,7 @@ import { useSettingsReturnTo } from "../lib/settingsReturnTo";
 import {
   createEmptyStaff,
   MAX_SHIFT_STAFF,
+  MAX_STAFF_NAME,
   type StaffMaster,
 } from "../types/shift";
 
@@ -174,7 +175,7 @@ export function StaffSettingsPage() {
                       <td>
                         <input
                           type="text"
-                          maxLength={40}
+                          maxLength={MAX_STAFF_NAME}
                           aria-label={`${index + 1}行目の職員氏名`}
                           value={row.name}
                           onChange={(event) =>
@@ -211,7 +212,7 @@ export function StaffSettingsPage() {
                 onClick={addRow}
                 disabled={rows.length >= MAX_SHIFT_STAFF}
               >
-                行追加
+                ＋ 行追加
               </button>
               <p className="shift-staff-count">
                 登録数 {filledCount} / {MAX_SHIFT_STAFF}

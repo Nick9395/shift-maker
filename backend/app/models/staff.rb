@@ -15,7 +15,7 @@ class Staff < ApplicationRecord
   belongs_to :user
   has_many :shift_staffs, class_name: "ShiftStaff", dependent: :nullify
 
-  validates :name, presence: true
+  validates :name, presence: true, length: { maximum: 30 }
   validates :client_uuid, presence: true
   validates :client_uuid, uniqueness: { scope: :user_id }
   validates :sort_order, numericality: { only_integer: true }

@@ -12,6 +12,7 @@ import {
   createEmptyDuty,
   isValidDutyAbbr,
   MAX_DUTIES,
+  MAX_DUTY_NAME,
   type DutyMaster,
 } from "../types/shift";
 
@@ -187,7 +188,7 @@ export function DutiesSettingsPage() {
                       <td>
                         <input
                           type="text"
-                          maxLength={40}
+                          maxLength={MAX_DUTY_NAME}
                           aria-label={`${index + 1}行目の職務名`}
                           value={row.name}
                           onChange={(event) =>
@@ -239,7 +240,7 @@ export function DutiesSettingsPage() {
                 onClick={addRow}
                 disabled={rows.length >= MAX_DUTIES}
               >
-                行追加
+                ＋ 行追加
               </button>
               <p className="shift-staff-count">
                 登録数 {filledCount} / {MAX_DUTIES}
