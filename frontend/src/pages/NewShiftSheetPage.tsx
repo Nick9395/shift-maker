@@ -14,19 +14,29 @@ import { ApiError } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { fetchDuties } from "../api/duties";
 import { loadShiftTypesForUser } from "../api/shiftTypes";
+import { ExcelExportDialog } from "../components/ExcelExportDialog";
 import { FlashToast, useFlash } from "../components/FlashToast";
+import { ShiftWizardBreadcrumb } from "../components/ShiftWizardBreadcrumb";
 import { brushCursor, eraserCursor } from "../lib/brushCursor";
 import {
   eachIsoDate,
   formatJaDate,
-  formatJaYearMonth,
   fromIsoDate,
   jaWeekday,
 } from "../lib/date";
 import { countDutiesForDate, isDutyCountShort } from "../lib/dutyCounts";
+import {
+  activeShiftCounts,
+  countShiftTypesForDate,
+  isShiftCountShort,
+  selectedShiftTypeIds,
+} from "../lib/shiftCounts";
 import { countStaffSummary, SUMMARY_COLUMNS, type SummaryColumn } from "../lib/shiftSummary";
+import { downloadShiftExcel, type ShiftExcelOptions } from "../lib/shiftExcel";
+import { settingsHref } from "../lib/settingsReturnTo";
 import { loadShiftTypes } from "../lib/shiftTypeStore";
-import { useShiftWizardPaths } from "../lib/shiftWizard";
+import { shiftWizardPaths, useShiftWizardPaths } from "../lib/shiftWizard";
+import { clearWizardPark } from "../lib/wizardPark";
 import {
   createEmptySheet,
   isValidShiftPlan,
@@ -35,6 +45,7 @@ import {
   sheetCellKey,
   type DutyCountDraft,
   type DutyMaster,
+  type ShiftCountDraft,
   type ShiftSheetDraft,
   type ShiftStaffDraft,
   type ShiftTypeMaster,
@@ -69,6 +80,34 @@ function formatDutyCount(
   const required = row.requiredCount.trim();
   if (required === "") return `${label} ${actual}`;
   return `${label} ${actual}/${required}`;
+}
+
+function formatShiftCount(
+  row: ShiftCountDraft,
+  types: ShiftTypeMaster[],
+  actual: number,
+): string {
+  const name = row.name.trim();
+  const firstId = selectedShiftTypeIds(row)[0];
+  const firstType = firstId
+    ? types.find((type) => type.id === firstId)
+    : undefined;
+  const fallback =
+    firstType?.abbreviation.trim() || firstType?.name.trim() || "未選択";
+  const label = name || fallback;
+  const required = row.requiredCount.trim();
+  if (required === "") return `${label} ${actual}`;
+  return `${label} ${actual}/${required}`;
+}
+
+function shiftCountTitle(
+  row: ShiftCountDraft,
+  types: ShiftTypeMaster[],
+): string | undefined {
+  const names = selectedShiftTypeIds(row)
+    .map((id) => types.find((type) => type.id === id)?.name.trim())
+    .filter((name): name is string => Boolean(name));
+  return names.length > 0 ? names.join("、") : undefined;
 }
 
 function summaryCells(
@@ -270,8 +309,13 @@ function mergeShiftTypes(
 
 /** シフト表作成画面 */
 export function NewShiftSheetPage() {
-  const { draft, setDraft, cancelPath = "/home", paletteTypes } =
-    useOutletContext<NewShiftWizardContext>();
+  const {
+    draft,
+    setDraft,
+    cancelPath = "/home",
+    paletteTypes,
+    unlockedStepIndex,
+  } = useOutletContext<NewShiftWizardContext>();
   const { token } = useAuth();
   const navigate = useNavigate();
   const paths = useShiftWizardPaths();
@@ -281,6 +325,8 @@ export function NewShiftSheetPage() {
   const { flashMessage, showFlash } = useFlash();
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmExcel, setConfirmExcel] = useState(false);
+  const [exportingExcel, setExportingExcel] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null);
   const [visibleShiftTypes, setVisibleShiftTypes] = useState(() =>
@@ -341,6 +387,28 @@ export function NewShiftSheetPage() {
     return result;
   }, [draft, dates, visibleShiftTypes]);
 
+  const visibleShiftCounts = useMemo(
+    () => activeShiftCounts(draft?.shiftCounts ?? []),
+    [draft],
+  );
+
+  const shiftCountTotalsByDate = useMemo(() => {
+    if (!draft) return new Map<string, Map<string, number>>();
+    const result = new Map<string, Map<string, number>>();
+    for (const iso of dates) {
+      result.set(
+        iso,
+        countShiftTypesForDate({
+          staff: draft.staff,
+          shiftCounts: draft.shiftCounts ?? [],
+          cells: draft.sheet.cells,
+          isoDate: iso,
+        }),
+      );
+    }
+    return result;
+  }, [draft, dates]);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -390,18 +458,19 @@ export function NewShiftSheetPage() {
   }, [token]);
 
   useEffect(() => {
-    if (!confirmCancel && !confirmDelete) return;
+    if (!confirmCancel && !confirmDelete && !confirmExcel) return;
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key !== "Escape") return;
-      if (deleting) return;
+      if (deleting || exportingExcel) return;
       setConfirmCancel(false);
       setConfirmDelete(false);
+      setConfirmExcel(false);
     }
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [confirmCancel, confirmDelete, deleting]);
+  }, [confirmCancel, confirmDelete, confirmExcel, deleting, exportingExcel]);
 
   useLayoutEffect(() => {
     const header = stickyHeaderRef.current;
@@ -444,9 +513,6 @@ export function NewShiftSheetPage() {
   cellsRef.current = cells;
   lockedIdsRef.current = lockedShiftTypeIds;
   allLockedRef.current = allLocked;
-  const periodSameMonth =
-    formatJaYearMonth(currentDraft.startDate) ===
-    formatJaYearMonth(currentDraft.endDate);
   const isEraser = selectedTypeId === ERASER_TOOL_ID;
   const selectedType = selectedTypeId && !isEraser
     ? shiftTypeById(visibleShiftTypes, selectedTypeId)
@@ -467,18 +533,19 @@ export function NewShiftSheetPage() {
     });
   }
 
-  async function handleSave() {
+  /** シフト表を保存し、成功時はサーバーIDを返す */
+  async function persistSheet(): Promise<number | null> {
     for (const iso of dates) {
       if (!isValidShiftPlan(plans[iso] ?? "")) {
         setSaveError(
           `${formatJaDate(iso)}の予定は全角28文字以内にしてください`,
         );
-        return;
+        return null;
       }
     }
     if (!token) {
       setSaveError("ログインが必要です");
-      return;
+      return null;
     }
 
     const current = draftRef.current ?? currentDraft;
@@ -490,16 +557,31 @@ export function NewShiftSheetPage() {
         : await createShift(token, current, visibleShiftTypes);
       setDraft({ ...current, serverId: saved.id });
       setIsSaved(true);
-      showFlash("保存しました");
+      clearWizardPark();
+      return saved.id;
     } catch (caught: unknown) {
       setSaveError(
         caught instanceof ApiError
           ? caught.message
           : "シフト表の保存に失敗しました",
       );
+      return null;
     } finally {
       setSaving(false);
     }
+  }
+
+  async function handleSave() {
+    const savedId = await persistSheet();
+    if (savedId != null) {
+      showFlash("保存しました");
+    }
+  }
+
+  async function handleGoToSettings() {
+    const savedId = await persistSheet();
+    if (savedId == null) return;
+    navigate(settingsHref("/settings", shiftWizardPaths(savedId).sheet));
   }
 
   function handleCancel() {
@@ -507,16 +589,37 @@ export function NewShiftSheetPage() {
       setConfirmCancel(true);
       return;
     }
+    clearWizardPark();
     navigate(cancelPath);
   }
 
   function confirmDiscardAndLeave() {
     setConfirmCancel(false);
+    clearWizardPark();
     navigate(cancelPath);
   }
 
   function handleDelete() {
     setConfirmDelete(true);
+  }
+
+  async function handleExcelDownload(options: ShiftExcelOptions) {
+    const current = draftRef.current ?? currentDraft;
+    setExportingExcel(true);
+    try {
+      await downloadShiftExcel({
+        draft: current,
+        types: visibleShiftTypes,
+        duties,
+        options,
+      });
+      setConfirmExcel(false);
+    } catch (caught: unknown) {
+      console.error(caught);
+      showFlash("Excelファイルを作成できませんでした");
+    } finally {
+      setExportingExcel(false);
+    }
   }
 
   async function confirmDeleteShift() {
@@ -532,6 +635,7 @@ export function NewShiftSheetPage() {
         await deleteShift(token, current.serverId);
       }
       setConfirmDelete(false);
+      clearWizardPark();
       navigate("/shifts", { state: { flash: "シフト表を削除しました" } });
     } catch (caught: unknown) {
       setSaveError(
@@ -753,6 +857,13 @@ export function NewShiftSheetPage() {
       <FlashToast message={flashMessage} />
       <header ref={stickyHeaderRef} className="shift-sheet-sticky">
         <div className="shift-sheet-sticky__inner">
+        <div className="shift-sheet-crumb">
+        <ShiftWizardBreadcrumb
+          unlockedStepIndex={unlockedStepIndex}
+          variant="sheet"
+        />
+        </div>
+        <div className="shift-sheet-palette-band">
         <div className="shift-palette" aria-label="シフト種別">
           <div
             className={
@@ -829,7 +940,9 @@ export function NewShiftSheetPage() {
             設定画面からシフト種別を登録してください。登録した種別のボタンが出現します。
           </p>
         ) : null}
+        </div>
 
+        <div className="shift-sheet-console">
         <div className="shift-sheet-toolbar">
           <div className="shift-sheet-toolbar__lock">
             <button
@@ -868,23 +981,28 @@ export function NewShiftSheetPage() {
             <button type="button" className="btn-secondary btn-sheet-action">
               自動作成
             </button>
-            <button type="button" className="btn-secondary btn-sheet-action">
-              PDF出力
-            </button>
-            <button type="button" className="btn-secondary btn-sheet-action">
+            <button
+              type="button"
+              className="btn-secondary btn-sheet-action"
+              onClick={() => setConfirmExcel(true)}
+              disabled={saving || deleting || exportingExcel}
+            >
               Excel出力
             </button>
             <button
               type="button"
               className="btn-secondary btn-sheet-action"
-              onClick={() => navigate("/settings")}
+              onClick={() => {
+                void handleGoToSettings();
+              }}
+              disabled={saving || deleting}
             >
               設定画面へ
             </button>
             <button
               type="button"
               className="btn-secondary btn-sheet-action"
-              onClick={() => navigate(paths.duties)}
+              onClick={() => navigate(paths.shiftCounts)}
             >
               前へもどる
             </button>
@@ -908,15 +1026,13 @@ export function NewShiftSheetPage() {
         </div>
         {saveError ? <p className="auth-error">{saveError}</p> : null}
         </div>
+        </div>
       </header>
 
       <div className="shift-sheet-body">
       <header className="shift-sheet-heading">
         <h2>{currentDraft.name}</h2>
         <p>
-          {periodSameMonth
-            ? formatJaYearMonth(currentDraft.startDate)
-            : `${formatJaYearMonth(currentDraft.startDate)} 〜 ${formatJaYearMonth(currentDraft.endDate)}`}
           <span className="shift-sheet-heading__period">
             {formatJaDate(currentDraft.startDate)} 〜{" "}
             {formatJaDate(currentDraft.endDate)}
@@ -1041,6 +1157,37 @@ export function NewShiftSheetPage() {
                 <td key={label} className={`col-sum col-sum-${index}`} />
               ))}
             </tr>
+            {visibleShiftCounts.length > 0 ? (
+              <tr className="shift-sheet-count-row">
+                <th className="col-name" scope="row">
+                  シフトカウント
+                </th>
+                <td className="col-duty" />
+                {dates.map((iso) => (
+                  <td key={iso} className={`col-date ${dateClassName(iso)}`}>
+                    <ul className="shift-sheet-counts">
+                      {visibleShiftCounts.map((row) => {
+                        const actual =
+                          shiftCountTotalsByDate.get(iso)?.get(row.id) ?? 0;
+                        const short = isShiftCountShort(row, actual);
+                        return (
+                          <li
+                            key={row.id}
+                            className={short ? "is-short" : undefined}
+                            title={shiftCountTitle(row, visibleShiftTypes)}
+                          >
+                            {formatShiftCount(row, visibleShiftTypes, actual)}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </td>
+                ))}
+                {SUMMARY_COLUMNS.map((label, index) => (
+                  <td key={label} className={`col-sum col-sum-${index}`} />
+                ))}
+              </tr>
+            ) : null}
             <tr className="shift-sheet-plan-row">
               <th className="col-name" scope="row">
                 予定
@@ -1142,6 +1289,18 @@ export function NewShiftSheetPage() {
             </div>
           </div>
         </div>
+      ) : null}
+      {confirmExcel ? (
+        <ExcelExportDialog
+          types={visibleShiftTypes}
+          exporting={exportingExcel}
+          onCancel={() => {
+            if (!exportingExcel) setConfirmExcel(false);
+          }}
+          onDownload={(options) => {
+            void handleExcelDownload(options);
+          }}
+        />
       ) : null}
       <div ref={tooltipRef} className="shift-tooltip" hidden />
     </div>

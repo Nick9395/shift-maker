@@ -28,6 +28,7 @@ class Shift::Serializer
       shift_types: types.map(&:as_api),
       staffs: shift.shift_staffs.sort_by(&:sort_order).map { |staff| serialize_staff(staff) },
       role_counts: shift.shift_role_counts.sort_by(&:sort_order).map { |row| serialize_role_count(row) },
+      shift_type_counts: shift.shift_type_counts.sort_by(&:sort_order).map { |row| serialize_type_count(row) },
       plans: shift.shift_plans.sort_by(&:date).map { |plan| serialize_plan(plan) },
       locked_shift_type_uuids: shift.shift_type_locks.filter_map { |lock| type_uuid_by_id[lock.shift_type_id] },
       entries: shift.shift_entries.map { |entry| serialize_entry(entry, type_uuid_by_id) }
@@ -54,6 +55,15 @@ class Shift::Serializer
     }
   end
 
+  def self.serialize_type_count(row)
+    {
+      name: row.name,
+      required_count: row.required_count,
+      shortage_notice: row.shortage_notice,
+      shift_type_client_uuids: row.shift_type_count_items.sort_by(&:sort_order).map(&:shift_type_client_uuid)
+    }
+  end
+
   def self.serialize_plan(plan)
     {
       date: plan.date,
@@ -68,5 +78,6 @@ class Shift::Serializer
       shift_type_client_uuid: type_uuid_by_id[entry.shift_type_id]
     }
   end
-  private_class_method :serialize_staff, :serialize_role_count, :serialize_plan, :serialize_entry
+  private_class_method :serialize_staff, :serialize_role_count, :serialize_type_count,
+                       :serialize_plan, :serialize_entry
 end

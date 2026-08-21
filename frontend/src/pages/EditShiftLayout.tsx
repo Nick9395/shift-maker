@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, Outlet, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   draftFromShiftDetail,
   fetchShift,
@@ -8,13 +8,20 @@ import {
 import { ApiError } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { AppShell } from "../components/AppShell";
+import { ShiftWizardFrame } from "../components/ShiftWizardFrame";
+import { settingsHref } from "../lib/settingsReturnTo";
+import {
+  LAST_WIZARD_STEP_INDEX,
+  type NewShiftWizardContext,
+} from "../lib/shiftWizard";
+import { loadWizardPark, parkWizard } from "../lib/wizardPark";
 import type { NewShiftDraft, ShiftTypeMaster } from "../types/shift";
-import type { NewShiftWizardContext } from "./NewShiftLayout";
 
 /** 保存済み勤務表の編集ウィザード（初期設定〜シート） */
 export function EditShiftLayout() {
   const { shiftId } = useParams();
   const { token } = useAuth();
+  const navigate = useNavigate();
   const [draft, setDraftState] = useState<NewShiftDraft | null>(null);
   const [paletteTypes, setPaletteTypes] = useState<ShiftTypeMaster[] | null>(
     null,
@@ -22,11 +29,30 @@ export function EditShiftLayout() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const draftRef = useRef<NewShiftDraft | null>(null);
+  const unlockedRef = useRef(LAST_WIZARD_STEP_INDEX);
 
   const setDraft = useCallback((next: NewShiftDraft) => {
     draftRef.current = next;
     setDraftState(next);
   }, []);
+
+  const unlockThrough = useCallback(() => {
+    // 編集では全ステップ到達済み
+  }, []);
+
+  const parkAndOpenSettings = useCallback(
+    (next: NewShiftDraft, returnPath: string) => {
+      setDraft(next);
+      parkWizard({
+        draft: next,
+        unlockedStepIndex: LAST_WIZARD_STEP_INDEX,
+        setupMode: null,
+        returnPath,
+      });
+      navigate(settingsHref("/settings", returnPath));
+    },
+    [navigate, setDraft],
+  );
 
   useEffect(() => {
     const id = Number(shiftId);
@@ -43,7 +69,10 @@ export function EditShiftLayout() {
     fetchShift(token, id)
       .then((shift) => {
         if (cancelled) return;
-        const next = draftFromShiftDetail(shift);
+        const fetched = draftFromShiftDetail(shift);
+        const parked = loadWizardPark();
+        const next =
+          parked?.draft.serverId === id ? parked.draft : fetched;
         draftRef.current = next;
         setDraftState(next);
         setPaletteTypes(shiftTypesFromDetail(shift));
@@ -89,13 +118,20 @@ export function EditShiftLayout() {
 
   return (
     <AppShell>
-      <Outlet
+      <ShiftWizardFrame
+        unlockedRef={unlockedRef}
+        unlockedStepIndex={LAST_WIZARD_STEP_INDEX}
         context={
           {
             draft: draftRef.current ?? draft,
             setDraft,
             cancelPath: "/shifts",
             paletteTypes,
+            unlockThrough,
+            unlockedStepIndex: LAST_WIZARD_STEP_INDEX,
+            setupMode: null,
+            setSetupMode: () => {},
+            parkAndOpenSettings,
           } satisfies NewShiftWizardContext
         }
       />

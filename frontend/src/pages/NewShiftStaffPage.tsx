@@ -54,9 +54,70 @@ function initialRows(staff: ShiftStaffDraft[] | undefined): ShiftStaffDraft[] {
   return [createStaffRow()];
 }
 
+const DUTY_SLOTS = ["duty1", "duty2", "duty3"] as const;
+
+type DutySlot = (typeof DUTY_SLOTS)[number];
+
+/** 同じ行の他枠で選ばれている職務名 */
+function otherDutyNames(row: ShiftStaffDraft, except: DutySlot): Set<string> {
+  const names = new Set<string>();
+  for (const slot of DUTY_SLOTS) {
+    if (slot === except) continue;
+    const name = row[slot].trim();
+    if (name) names.add(name);
+  }
+  return names;
+}
+
+/** 同一職員内で職務が重複している枠の位置（0始まり）。なければ null */
+function duplicateDutySlotIndex(row: ShiftStaffDraft): number | null {
+  const seen = new Set<string>();
+  for (const [index, slot] of DUTY_SLOTS.entries()) {
+    const name = row[slot].trim();
+    if (!name) continue;
+    if (seen.has(name)) return index;
+    seen.add(name);
+  }
+  return null;
+}
+
+/** 前後空白を除いた氏名が2行以上ある名前 */
+function duplicateStaffNames(rows: ShiftStaffDraft[]): Set<string> {
+  const counts = new Map<string, number>();
+  for (const row of rows) {
+    const name = row.name.trim();
+    if (!name) continue;
+    counts.set(name, (counts.get(name) ?? 0) + 1);
+  }
+  const duplicates = new Set<string>();
+  for (const [name, count] of counts) {
+    if (count > 1) duplicates.add(name);
+  }
+  return duplicates;
+}
+
+function DuplicateNameWarn() {
+  return (
+    <span
+      className="shift-staff-name__warn"
+      data-tooltip="同一名の職員がいます"
+      aria-label="同一名の職員がいます"
+      tabIndex={0}
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path
+          fill="currentColor"
+          d="M12.9 3.4c-.4-.7-1.4-.7-1.8 0L2.2 19.2c-.4.7.1 1.6.9 1.6h17.8c.8 0 1.3-.9.9-1.6L12.9 3.4ZM12 9.2c.5 0 .8.4.8.8l-.4 5.2h-.8L11.2 10c0-.4.3-.8.8-.8Zm0 9.1a1.1 1.1 0 1 1 0-2.2 1.1 1.1 0 0 1 0 2.2Z"
+        />
+      </svg>
+    </span>
+  );
+}
+
 /** 新規シフト表作成：職員名はマスタ選択または手入力。職務はマスタから選択 */
 export function NewShiftStaffPage() {
-  const { draft, setDraft } = useOutletContext<NewShiftWizardContext>();
+  const { draft, setDraft, unlockThrough, parkAndOpenSettings } =
+    useOutletContext<NewShiftWizardContext>();
   const navigate = useNavigate();
   const paths = useShiftWizardPaths();
   const { token } = useAuth();
@@ -106,11 +167,14 @@ export function NewShiftStaffPage() {
 
   const currentDraft = draft;
   const filledCount = rows.filter((row) => !isBlankRow(row)).length;
+  const duplicateNames = duplicateStaffNames(rows);
+  const showNameWarnColumn = duplicateNames.size > 0;
 
   function persistStaff(nextRows: ShiftStaffDraft[]) {
     setDraft({
       ...currentDraft,
       staff: toStoredStaff(nextRows),
+      shiftCounts: currentDraft.shiftCounts ?? [],
       sheet: currentDraft.sheet ?? createEmptySheet(),
     });
   }
@@ -123,6 +187,7 @@ export function NewShiftStaffPage() {
     setRows((current) =>
       current.map((row) => (row.id === id ? { ...row, [field]: value } : row)),
     );
+    setError(null);
   }
 
   function addRow() {
@@ -152,6 +217,18 @@ export function NewShiftStaffPage() {
     navigate(paths.root);
   }
 
+  function handleGoToSettings() {
+    parkAndOpenSettings(
+      {
+        ...currentDraft,
+        staff: rows,
+        shiftCounts: currentDraft.shiftCounts ?? [],
+        sheet: currentDraft.sheet ?? createEmptySheet(),
+      },
+      paths.staff,
+    );
+  }
+
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
@@ -167,6 +244,13 @@ export function NewShiftStaffPage() {
         setError(`${index + 1}行目の職員氏名を入力してください`);
         return;
       }
+      const duplicateSlot = duplicateDutySlotIndex(row);
+      if (duplicateSlot != null) {
+        setError(
+          `${index + 1}行目の職務${duplicateSlot + 1}はすでにこの職員に設定されています`,
+        );
+        return;
+      }
     }
 
     if (staff.length > MAX_SHIFT_STAFF) {
@@ -175,12 +259,12 @@ export function NewShiftStaffPage() {
     }
 
     persistStaff(rows);
+    unlockThrough("duties");
     navigate(paths.duties);
   }
 
   return (
     <div className="shift-form-page shift-form-page--wide">
-      <h2>職員情報を設定</h2>
       <form
         className="shift-staff-form"
         onSubmit={handleSubmit}
@@ -208,21 +292,35 @@ export function NewShiftStaffPage() {
               {rows.map((row, index) => (
                 <tr key={row.id}>
                   <td>
-                    <SuggestInput
-                      maxLength={40}
-                      ariaLabel={`${index + 1}行目の職員氏名`}
-                      value={row.name}
-                      options={staffOptions}
-                      emptyMessage="設定に職員が登録されていません"
-                      noMatchMessage="一致する職員がいません"
-                      onChange={(name) => updateRow(row.id, "name", name)}
-                    />
+                    <div className="shift-staff-name">
+                      {showNameWarnColumn ? (
+                        duplicateNames.has(row.name.trim()) ? (
+                          <DuplicateNameWarn />
+                        ) : (
+                          <span
+                            className="shift-staff-name__warn-spacer"
+                            aria-hidden="true"
+                          />
+                        )
+                      ) : null}
+                      <SuggestInput
+                        maxLength={40}
+                        ariaLabel={`${index + 1}行目の職員氏名`}
+                        value={row.name}
+                        options={staffOptions}
+                        emptyMessage="設定に職員が登録されていません"
+                        noMatchMessage="一致する職員がいません"
+                        onChange={(name) => updateRow(row.id, "name", name)}
+                      />
+                    </div>
                   </td>
                   <td>
                     <DutySelect
                       ariaLabel={`${index + 1}行目の職務1`}
                       value={row.duty1}
-                      duties={duties}
+                      duties={duties.filter(
+                        (duty) => !otherDutyNames(row, "duty1").has(duty.name),
+                      )}
                       placeholder="未選択"
                       onChange={(value) => updateRow(row.id, "duty1", value)}
                     />
@@ -231,7 +329,9 @@ export function NewShiftStaffPage() {
                     <DutySelect
                       ariaLabel={`${index + 1}行目の職務2`}
                       value={row.duty2}
-                      duties={duties}
+                      duties={duties.filter(
+                        (duty) => !otherDutyNames(row, "duty2").has(duty.name),
+                      )}
                       placeholder="未選択"
                       onChange={(value) => updateRow(row.id, "duty2", value)}
                     />
@@ -240,7 +340,9 @@ export function NewShiftStaffPage() {
                     <DutySelect
                       ariaLabel={`${index + 1}行目の職務3`}
                       value={row.duty3}
-                      duties={duties}
+                      duties={duties.filter(
+                        (duty) => !otherDutyNames(row, "duty3").has(duty.name),
+                      )}
                       placeholder="未選択"
                       onChange={(value) => updateRow(row.id, "duty3", value)}
                     />
@@ -286,6 +388,13 @@ export function NewShiftStaffPage() {
         <div className="shift-form__actions">
           <button type="submit" className="btn-primary">
             確定して次へ
+          </button>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={handleGoToSettings}
+          >
+            設定画面へ
           </button>
           <button type="button" className="btn-secondary" onClick={handleBack}>
             前にもどる

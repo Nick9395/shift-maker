@@ -50,6 +50,43 @@ module Api
         assert_equal "type-day", shift["entries"].first["shift_type_client_uuid"]
         assert_includes shift["locked_shift_type_uuids"], "type-day"
         assert_equal "日勤", shift["shift_types"].first["display_name"]
+        assert_equal 1, shift["shift_type_counts"].size
+        assert_equal "日勤", shift["shift_type_counts"].first["name"]
+        assert_equal [ "type-day" ], shift["shift_type_counts"].first["shift_type_client_uuids"]
+        assert_equal 1, shift["shift_type_counts"].first["required_count"]
+        assert_equal true, shift["shift_type_counts"].first["shortage_notice"]
+      end
+
+      test "同じグループの複数種別をシフトカウントとして保存できる" do
+        headers = auth_headers_for(@user)
+        payload = valid_payload.merge(
+          shift_types: [
+            valid_payload[:shift_types].first,
+            {
+              client_uuid: "type-day-2",
+              name: "日勤2",
+              display_name: "日2",
+              start_time: "08:30",
+              end_time: "17:15",
+              break_time: "01:00",
+              status: "日中勤務",
+              color: "#c45c26"
+            }
+          ],
+          shift_type_counts: [
+            {
+              name: "日勤",
+              required_count: 2,
+              shortage_notice: true,
+              shift_type_client_uuids: [ "type-day", "type-day-2" ]
+            }
+          ]
+        )
+        post api_v1_shifts_path, params: { shift: payload }, headers: headers, as: :json
+        assert_response :created
+
+        shift = JSON.parse(response.body)["shift"]
+        assert_equal [ "type-day", "type-day-2" ], shift["shift_type_counts"].first["shift_type_client_uuids"]
       end
 
       test "同じ勤務表を更新できる" do
@@ -188,6 +225,14 @@ module Api
               priority: true,
               required_count: 1,
               shortage_notice: true
+            }
+          ],
+          shift_type_counts: [
+            {
+              name: "日勤",
+              required_count: 1,
+              shortage_notice: true,
+              shift_type_client_uuids: [ "type-day" ]
             }
           ],
           plans: [

@@ -76,6 +76,12 @@ module Api
             :required_count,
             :shortage_notice
           ],
+          shift_type_counts: [
+            :name,
+            :required_count,
+            :shortage_notice,
+            shift_type_client_uuids: []
+          ],
           plans: [ :date, :body ],
           entries: [
             :staff_client_uuid,

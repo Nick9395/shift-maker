@@ -61,7 +61,8 @@ function duplicateDutyRowIndex(rows: DutyCountDraft[]): number | null {
 
 /** 新規シフト表作成：職務カウント設定 */
 export function NewShiftDutiesPage() {
-  const { draft, setDraft } = useOutletContext<NewShiftWizardContext>();
+  const { draft, setDraft, unlockThrough, parkAndOpenSettings } =
+    useOutletContext<NewShiftWizardContext>();
   const navigate = useNavigate();
   const paths = useShiftWizardPaths();
   const { token } = useAuth();
@@ -103,6 +104,7 @@ export function NewShiftDutiesPage() {
     setDraft({
       ...currentDraft,
       dutyCounts: nextRows,
+      shiftCounts: currentDraft.shiftCounts ?? [],
       sheet: currentDraft.sheet ?? createEmptySheet(),
     });
   }
@@ -148,6 +150,18 @@ export function NewShiftDutiesPage() {
     navigate(paths.staff);
   }
 
+  function handleGoToSettings() {
+    parkAndOpenSettings(
+      {
+        ...currentDraft,
+        dutyCounts: rows,
+        shiftCounts: currentDraft.shiftCounts ?? [],
+        sheet: currentDraft.sheet ?? createEmptySheet(),
+      },
+      paths.duties,
+    );
+  }
+
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
     const duplicateIndex = duplicateDutyRowIndex(rows);
@@ -158,12 +172,12 @@ export function NewShiftDutiesPage() {
       return;
     }
     persistDutyCounts(rows);
-    navigate(paths.sheet);
+    unlockThrough("shiftCounts");
+    navigate(paths.shiftCounts);
   }
 
   return (
     <div className="shift-form-page shift-form-page--wide">
-      <h2>職務カウント設定</h2>
       <form
         className="shift-staff-form"
         onSubmit={handleSubmit}
@@ -301,6 +315,13 @@ export function NewShiftDutiesPage() {
         <div className="shift-form__actions">
           <button type="submit" className="btn-primary">
             確定して次へ
+          </button>
+          <button
+            type="button"
+            className="btn-secondary"
+            onClick={handleGoToSettings}
+          >
+            設定画面へ
           </button>
           <button type="button" className="btn-secondary" onClick={handleBack}>
             前にもどる

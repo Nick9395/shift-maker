@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_18_130000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_21_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -99,6 +99,29 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_18_130000) do
     t.index ["staff_id"], name: "index_shift_staffs_on_staff_id"
   end
 
+  create_table "shift_type_count_items", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "shift_type_client_uuid", null: false
+    t.bigint "shift_type_count_id", null: false
+    t.bigint "shift_type_id"
+    t.integer "sort_order", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.index ["shift_type_count_id", "sort_order"], name: "idx_on_shift_type_count_id_sort_order_d5a7d1944b"
+    t.index ["shift_type_count_id"], name: "index_shift_type_count_items_on_shift_type_count_id"
+    t.index ["shift_type_id"], name: "index_shift_type_count_items_on_shift_type_id"
+  end
+
+  create_table "shift_type_counts", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "name", default: "", null: false
+    t.integer "required_count", default: 0, null: false
+    t.bigint "shift_id", null: false
+    t.boolean "shortage_notice", default: true, null: false
+    t.integer "sort_order", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.index ["shift_id"], name: "index_shift_type_counts_on_shift_id"
+  end
+
   create_table "shift_type_locks", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.bigint "shift_id", null: false
@@ -177,6 +200,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_18_130000) do
   add_foreign_key "shift_staffs", "roles", column: "role_id_3", on_delete: :nullify
   add_foreign_key "shift_staffs", "shifts", on_delete: :cascade
   add_foreign_key "shift_staffs", "staffs", on_delete: :nullify
+  add_foreign_key "shift_type_count_items", "shift_type_counts", on_delete: :cascade
+  add_foreign_key "shift_type_count_items", "shift_types", on_delete: :nullify
+  add_foreign_key "shift_type_counts", "shifts", on_delete: :cascade
   add_foreign_key "shift_type_locks", "shift_types"
   add_foreign_key "shift_type_locks", "shifts", on_delete: :cascade
   add_foreign_key "shift_types", "users"

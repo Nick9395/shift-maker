@@ -8,11 +8,12 @@ import {
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { FlashToast, useFlash } from "./FlashToast";
-import { hintLinesForPath } from "../lib/pageHints";
+import { headerTitleForPath, hintLinesForPath } from "../lib/pageHints";
 import {
   isAtShiftCreateLimit,
   SHIFT_CREATE_LIMIT_MESSAGE,
 } from "../lib/shiftLimit";
+import { clearWizardPark } from "../lib/wizardPark";
 
 function BrandMark() {
   return (
@@ -64,6 +65,7 @@ export function AppShell({ children }: AppShellProps) {
     location.pathname === "/shifts/new/sheet" ||
     /^\/shifts\/\d+\/sheet$/.test(location.pathname);
   const hintLines = hintLinesForPath(location.pathname);
+  const headerTitle = headerTitleForPath(location.pathname);
 
   const startNewShift = useCallback(() => {
     if (startingRef.current) return;
@@ -75,9 +77,11 @@ export function AppShell({ children }: AppShellProps) {
           showFlash(SHIFT_CREATE_LIMIT_MESSAGE);
           return;
         }
-        navigate("/shifts/new");
+        clearWizardPark();
+        navigate("/shifts/new", { state: { freshWizard: true } });
       } catch {
-        navigate("/shifts/new");
+        clearWizardPark();
+        navigate("/shifts/new", { state: { freshWizard: true } });
       } finally {
         startingRef.current = false;
       }
@@ -185,11 +189,17 @@ export function AppShell({ children }: AppShellProps) {
         {isSheetPage ? null : (
           <header className="app-shell__header">
             <h1 aria-hidden={welcomeMessage ? true : undefined}>
-              <span className="app-shell__header-name">
-                {user?.name || "ユーザー"}さん
-              </span>
-              <span className="app-shell__header-sep" aria-hidden="true" />
-              <span className="app-shell__header-page">のページ</span>
+              {headerTitle ? (
+                <span className="app-shell__header-name">{headerTitle}</span>
+              ) : (
+                <>
+                  <span className="app-shell__header-name">
+                    {user?.name || "ユーザー"}さん
+                  </span>
+                  <span className="app-shell__header-sep" aria-hidden="true" />
+                  <span className="app-shell__header-page">のページ</span>
+                </>
+              )}
             </h1>
             {welcomeMessage ? (
               <p className="app-shell__welcome" role="status" aria-live="polite">

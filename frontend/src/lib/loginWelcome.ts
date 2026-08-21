@@ -1,4 +1,4 @@
-export const LOGIN_WELCOME_DURATION_MS = 4000;
+export const LOGIN_WELCOME_DURATION_MS = 10000;
 
 export type LoginWelcomeMessage = {
   name: string;

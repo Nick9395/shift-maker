@@ -54,6 +54,18 @@ export type DutyCountDraft = {
   shortageNotice: boolean;
 };
 
+/** シフトカウント名の最大文字数 */
+export const MAX_SHIFT_COUNT_NAME = 20;
+
+/** シフトカウント設定（名は手入力、種別はマスタから選択） */
+export type ShiftCountDraft = {
+  id: string;
+  name: string;
+  shiftTypeIds: string[];
+  requiredCount: string;
+  shortageNotice: boolean;
+};
+
 /** シフト種別マスタの上限 */
 export const MAX_SHIFT_TYPES = 30;
 
@@ -220,5 +232,6 @@ export type NewShiftDraft = {
   holidayCount: number;
   staff: ShiftStaffDraft[];
   dutyCounts: DutyCountDraft[];
+  shiftCounts: ShiftCountDraft[];
   sheet: ShiftSheetDraft;
 };
