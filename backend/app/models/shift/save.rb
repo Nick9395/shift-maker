@@ -42,7 +42,8 @@ class Shift::Save
     @type_by_uuid = ShiftType.upsert_each!(user, types)
 
     extra_uuids = Array(params[:entries]).filter_map { |entry| entry[:shift_type_client_uuid].presence } +
-                  Array(params[:locked_shift_type_uuids]).map(&:to_s)
+                  Array(params[:locked_shift_type_uuids]).map(&:to_s) +
+                  shift_count_type_uuids
     extra_uuids.uniq.each do |uuid|
       next if uuid.blank? || @type_by_uuid[uuid]
 
@@ -72,10 +73,12 @@ class Shift::Save
     @shift.shift_type_locks.delete_all
     @shift.shift_plans.delete_all
     @shift.shift_role_counts.delete_all
+    @shift.shift_type_counts.destroy_all
     @shift.shift_staffs.destroy_all
 
     staff_by_uuid = create_staffs!
     create_role_counts!
+    create_shift_type_counts!
     create_plans!
     create_locks!
     create_entries!(staff_by_uuid)
@@ -119,6 +122,39 @@ class Shift::Save
         shortage_notice: cast_boolean(count_params[:shortage_notice], false),
         sort_order: index
       )
+    end
+  end
+
+  def shift_count_type_uuids
+    Array(params[:shift_type_counts]).flat_map do |count_params|
+      Array(count_params[:shift_type_client_uuids]).map(&:to_s)
+    end
+  end
+
+  def create_shift_type_counts!
+    seen_uuids = {}
+    Array(params[:shift_type_counts]).each_with_index do |count_params, index|
+      uuids = Array(count_params[:shift_type_client_uuids]).map(&:to_s).reject(&:blank?).uniq
+      uuids.select! do |uuid|
+        next false if @type_by_uuid[uuid].blank? || seen_uuids[uuid]
+
+        seen_uuids[uuid] = true
+      end
+      next if uuids.empty?
+
+      record = @shift.shift_type_counts.create!(
+        name: count_params[:name].to_s.strip[0, 20].to_s,
+        required_count: parse_required_count(count_params[:required_count]),
+        shortage_notice: cast_boolean(count_params[:shortage_notice], true),
+        sort_order: index
+      )
+      uuids.each_with_index do |uuid, item_index|
+        record.shift_type_count_items.create!(
+          shift_type: @type_by_uuid[uuid],
+          shift_type_client_uuid: uuid,
+          sort_order: item_index
+        )
+      end
     end
   end
 

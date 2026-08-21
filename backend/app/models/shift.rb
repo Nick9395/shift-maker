@@ -5,6 +5,8 @@ class Shift < ApplicationRecord
   has_many :shift_staffs, class_name: "ShiftStaff", dependent: :destroy
   has_many :shift_plans, dependent: :destroy
   has_many :shift_role_counts, dependent: :destroy
+  has_many :shift_type_counts, -> { order(:sort_order, :id) },
+           dependent: :destroy, inverse_of: :shift
   has_many :shift_type_locks, dependent: :destroy
   has_many :shift_entries, dependent: :delete_all
 

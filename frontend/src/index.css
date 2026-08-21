@@ -687,7 +687,7 @@ select {
   z-index: 1;
   animation:
     welcome-enter 0.55s ease-out both,
-    welcome-exit 0.45s ease-in 3.5s forwards;
+    welcome-exit 0.45s ease-in 9.55s forwards;
 }
 
 .app-shell__welcome::before {
@@ -1010,11 +1010,6 @@ select {
   width: min(480px, 100%);
 }
 
-.settings-page h2 {
-  margin: 0 0 18px;
-  font-size: 1.2rem;
-}
-
 .settings-menu {
   display: flex;
   flex-direction: column;
@@ -1038,26 +1033,23 @@ select {
   text-decoration: none;
 }
 
+.settings-page__actions {
+  margin-top: 18px;
+}
+
 /* ---------- シフト一覧 ---------- */
 
 .shift-list-page {
   width: min(720px, 100%);
 }
 
-.shift-list-page__title {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  margin: 0 0 18px;
-}
-
 .shift-list-page h2 {
-  margin: 0;
+  margin: 0 0 18px;
   font-size: 1.2rem;
 }
 
 .shift-list-page__count {
-  margin: 0;
+  margin: 0 0 18px;
   color: var(--ink-soft);
   font-size: 0.95rem;
   font-weight: 600;
@@ -1092,8 +1084,105 @@ select {
 
 /* ---------- 新規シフト表作成 ---------- */
 
+.wizard-breadcrumb {
+  margin: 0 0 16px;
+}
+
+.wizard-breadcrumb ol {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.wizard-breadcrumb li {
+  display: flex;
+  align-items: center;
+}
+
+.wizard-breadcrumb li:not(:last-child)::after {
+  content: "›";
+  margin: 0 8px;
+  color: var(--ink-soft);
+  opacity: 0.7;
+}
+
+.wizard-breadcrumb a {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.wizard-breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+.wizard-breadcrumb__current {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.wizard-breadcrumb--sheet {
+  margin: 0;
+}
+
 .shift-form-page {
   width: min(480px, 100%);
+}
+
+.shift-setup-modes {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0 0 18px;
+}
+
+.shift-setup-modes__btn {
+  display: block;
+  width: 100%;
+  min-height: 72px;
+  padding: 20px 22px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1.02rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  line-height: 1.4;
+  text-align: center;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(60, 40, 20, 0.1);
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    color 0.15s ease;
+}
+
+.shift-setup-modes__btn:hover {
+  background: #fff;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.shift-setup-modes__btn.is-selected {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  box-shadow: 0 12px 28px rgba(196, 92, 38, 0.28);
+}
+
+.shift-setup-modes__btn.is-selected:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: #fff;
 }
 
 .shift-form-page--wide {
@@ -1132,7 +1221,8 @@ select {
 .shift-form input[type="text"],
 .shift-form input[type="number"],
 .shift-form input[type="email"],
-.shift-form input[type="password"] {
+.shift-form input[type="password"],
+.shift-form select {
   border: 1px solid var(--border);
   background: #fff;
   padding: 10px 12px;
@@ -1140,7 +1230,8 @@ select {
   width: 100%;
 }
 
-.shift-form input:focus {
+.shift-form input:focus,
+.shift-form select:focus {
   outline: 2px solid rgba(196, 92, 38, 0.35);
   border-color: var(--accent);
 }
@@ -1297,6 +1388,54 @@ select {
   min-width: 620px;
 }
 
+.shift-staff-table--shift-counts {
+  min-width: 720px;
+}
+
+.shift-count-table__name {
+  width: 10rem;
+}
+
+.shift-count-types {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.shift-count-types__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.shift-count-types__row select {
+  flex: 1;
+  min-width: 0;
+}
+
+.shift-count-types__add {
+  box-sizing: border-box;
+  border: 1px solid var(--accent);
+  background: rgba(196, 92, 38, 0.12);
+  color: var(--accent);
+  cursor: pointer;
+  font-weight: 600;
+  padding: 6px 12px;
+}
+
+.shift-count-types__add:hover:not(:disabled) {
+  background: rgba(196, 92, 38, 0.22);
+}
+
+.shift-count-types__add:disabled {
+  border-color: var(--border);
+  background: #f3eee8;
+  color: var(--ink-soft);
+  cursor: not-allowed;
+}
+
 .shift-staff-table th {
   text-align: left;
   font-size: 0.92rem;
@@ -1312,6 +1451,10 @@ select {
   padding: 8px 10px;
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
+}
+
+.shift-staff-table.shift-staff-table--shift-counts td {
+  vertical-align: top;
 }
 
 .shift-staff-table input[type="text"],
@@ -1336,6 +1479,61 @@ select {
 
 .shift-staff-table-wrap--suggest {
   overflow: visible;
+}
+
+.shift-staff-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.shift-staff-name .suggest-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.shift-staff-name__warn,
+.shift-staff-name__warn-spacer {
+  flex: 0 0 1.25rem;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.shift-staff-name__warn {
+  position: relative;
+  display: inline-flex;
+  color: var(--accent);
+  cursor: default;
+}
+
+.shift-staff-name__warn svg {
+  display: block;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.shift-staff-name__warn:hover::after,
+.shift-staff-name__warn:focus-visible::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 40;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: var(--header);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+  box-shadow: 0 8px 20px rgba(40, 30, 20, 0.22);
+}
+
+.shift-staff-name__warn:focus-visible {
+  outline: 2px solid rgba(196, 92, 38, 0.35);
+  outline-offset: 2px;
 }
 
 .suggest-input {
@@ -1814,6 +2012,12 @@ select {
   background-color: var(--bg);
   cursor: grab;
   user-select: none;
+  --sheet-crumb: #eadccb;
+  --sheet-palette: #fff8ee;
+  --sheet-console: #d9c4aa;
+  --sheet-lock: #b5523a;
+  --sheet-lock-hover: #9c4631;
+  --sheet-lock-soft: #f6e4dc;
 }
 
 .shift-sheet-sticky {
@@ -1821,7 +2025,7 @@ select {
   top: 0;
   z-index: 20;
   width: 100%;
-  background-color: var(--bar);
+  background-color: var(--sheet-console);
   border-bottom: 1px solid var(--border);
   cursor: auto;
 }
@@ -1832,11 +2036,28 @@ select {
   z-index: 21;
   width: var(--sheet-viewport-width, 100%);
   box-sizing: border-box;
-  padding: 12px 16px 14px;
-  background-color: var(--bar);
+  padding: 0;
+  background-color: transparent;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0;
+}
+
+.shift-sheet-crumb {
+  padding: 10px 16px;
+  background-color: var(--sheet-crumb);
+  border-bottom: 1px solid var(--border);
+}
+
+.shift-sheet-palette-band {
+  padding: 12px 16px;
+  background-color: var(--sheet-palette);
+  border-bottom: 1px solid var(--border);
+}
+
+.shift-sheet-console {
+  padding: 12px 16px 14px;
+  background-color: var(--sheet-console);
 }
 
 .shift-sheet-sticky button {
@@ -1999,9 +2220,9 @@ select {
 
 .btn-secondary.is-active,
 .btn-sheet-lock.is-active {
-  background: var(--lock);
+  background: var(--sheet-lock, var(--lock));
   color: #fff;
-  border-color: var(--lock);
+  border-color: var(--sheet-lock, var(--lock));
 }
 
 .shift-sheet-toolbar {
@@ -2027,28 +2248,132 @@ select {
   align-items: center;
   justify-content: center;
   white-space: nowrap;
+  border-radius: 8px;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(60, 40, 20, 0.08);
 }
 
 .shift-sheet-toolbar .btn-secondary {
-  background-color: var(--button);
+  background-color: var(--card);
   color: var(--ink);
+  border: 1px solid var(--border);
 }
 
 .shift-sheet-toolbar .btn-secondary:hover {
-  background-color: var(--card);
-  color: var(--ink);
+  background-color: #fff;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.shift-sheet-toolbar .btn-primary.btn-sheet-action {
+  background-color: var(--accent);
+  border: 1px solid var(--accent);
+  color: #fff;
+}
+
+.shift-sheet-toolbar .btn-primary.btn-sheet-action:hover {
+  background-color: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.shift-sheet-toolbar .btn-sheet-lock {
+  background-image:
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.14) 0px,
+      rgba(255, 255, 255, 0) 1px,
+      rgba(0, 0, 0, 0.05) 2px,
+      rgba(0, 0, 0, 0) 3px
+    ),
+    linear-gradient(
+      180deg,
+      #f3efe8 0%,
+      #d8d1c7 16%,
+      #b9b1a6 48%,
+      #8f877c 84%,
+      #c9c2b6 100%
+    );
+  border: 1px solid #6a635b;
+  color: #2c2824;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    inset 0 -1px 0 rgba(40, 32, 24, 0.28),
+    0 2px 5px rgba(40, 30, 20, 0.28);
+}
+
+.shift-sheet-toolbar .btn-sheet-lock:hover {
+  background-image:
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.18) 0px,
+      rgba(255, 255, 255, 0) 1px,
+      rgba(0, 0, 0, 0.04) 2px,
+      rgba(0, 0, 0, 0) 3px
+    ),
+    linear-gradient(
+      180deg,
+      #faf7f1 0%,
+      #e4ddd3 16%,
+      #c7bfb4 48%,
+      #9c9488 84%,
+      #d6cfc4 100%
+    );
+  border-color: #534e47;
+  color: #1f1c19;
+}
+
+.shift-sheet-toolbar .btn-sheet-lock:active {
+  box-shadow:
+    inset 0 2px 4px rgba(40, 32, 24, 0.35),
+    inset 0 1px 0 rgba(0, 0, 0, 0.12);
 }
 
 .shift-sheet-toolbar .btn-sheet-lock.is-active {
-  background-color: var(--lock);
-  color: #fff;
-  border-color: var(--lock);
+  background-image:
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.1) 0px,
+      rgba(255, 255, 255, 0) 1px,
+      rgba(0, 0, 0, 0.08) 2px,
+      rgba(0, 0, 0, 0) 3px
+    ),
+    linear-gradient(
+      180deg,
+      #c9a090 0%,
+      #a56a56 18%,
+      #874739 50%,
+      #5e2f26 86%,
+      #8a4e40 100%
+    );
+  border-color: #4a2c26;
+  color: #fff8f4;
+  text-shadow: 0 1px 1px rgba(40, 16, 12, 0.55);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 220, 200, 0.35),
+    inset 0 -1px 0 rgba(40, 16, 12, 0.4),
+    0 2px 5px rgba(40, 20, 16, 0.35);
 }
 
 .shift-sheet-toolbar .btn-sheet-lock.is-active:hover {
-  background-color: var(--lock-hover);
-  color: #fff;
-  border-color: var(--lock-hover);
+  background-image:
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.12) 0px,
+      rgba(255, 255, 255, 0) 1px,
+      rgba(0, 0, 0, 0.08) 2px,
+      rgba(0, 0, 0, 0) 3px
+    ),
+    linear-gradient(
+      180deg,
+      #d4ac9a 0%,
+      #b27662 18%,
+      #965244 50%,
+      #6c362c 86%,
+      #96564a 100%
+    );
+  border-color: #3f241f;
+  color: #fff8f4;
 }
 
 .btn-sheet-lock {
@@ -2060,14 +2385,15 @@ select {
 }
 
 .shift-sheet-toolbar .btn-sheet-danger {
-  color: var(--danger);
-  border-color: var(--danger);
-  background-color: var(--button);
+  color: #d32f2f;
+  border-color: #d32f2f;
+  background-color: #fff;
 }
 
 .shift-sheet-toolbar .btn-sheet-danger:hover {
-  background-color: var(--lock-soft);
-  color: var(--danger);
+  background-color: #b71c1c;
+  border-color: #8e0000;
+  color: #fff;
 }
 
 .shift-sheet-toolbar .btn-sheet-danger:disabled {
@@ -2330,6 +2656,64 @@ select {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+.confirm-dialog__card--wide {
+  width: min(560px, 100%);
+  max-height: min(82vh, 760px);
+  overflow: auto;
+}
+
+.confirm-dialog__card--wide #excel-export-title {
+  text-align: left;
+  margin-bottom: 8px;
+}
+
+.excel-export-note {
+  margin: 0 0 14px !important;
+  text-align: left !important;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+
+.excel-export-fieldset {
+  margin: 0 0 14px;
+  padding: 10px 12px 12px;
+  border: 1px solid var(--border);
+}
+
+.excel-export-fieldset legend {
+  padding: 0 6px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.excel-export-fieldset label {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 6px 0 0;
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+.excel-export-fieldset input[type="checkbox"] {
+  margin-top: 3px;
+  flex: 0 0 auto;
+}
+
+.excel-export-types {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2px 12px;
+}
+
+.excel-export-empty {
+  margin: 8px 0 0 !important;
+  text-align: left !important;
+  color: var(--ink-soft);
+  font-size: 0.88rem;
 }
 
 .shift-tooltip {

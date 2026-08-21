@@ -68,7 +68,11 @@ export function HomePage() {
         {shifts && shifts.length === 0 ? (
           <div className="home-empty">
             <p>現在作成したシフト表はありません</p>
-            <Link className="btn-primary home-empty__action" to="/shifts/new">
+            <Link
+              className="btn-primary home-empty__action"
+              to="/shifts/new"
+              state={{ freshWizard: true }}
+            >
               新規シフト表作成
             </Link>
           </div>

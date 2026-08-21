@@ -63,14 +63,11 @@ export function ShiftsListPage() {
     <AppShell>
       <FlashToast message={flashMessage} />
       <div className="shift-list-page">
-        <div className="shift-list-page__title">
-          <h2>シフト表一覧</h2>
-          {shifts != null ? (
-            <p className="shift-list-page__count">
-              {shifts.length}/{MAX_SHIFTS}
-            </p>
-          ) : null}
-        </div>
+        {shifts != null ? (
+          <p className="shift-list-page__count">
+            {shifts.length}件({MAX_SHIFTS}件まで作成可能)
+          </p>
+        ) : null}
         {error ? <p className="auth-error">{error}</p> : null}
         {shifts == null && !error ? (
           <p className="auth-muted">読み込み中...</p>
@@ -78,7 +75,11 @@ export function ShiftsListPage() {
         {shifts && shifts.length === 0 ? (
           <div className="shift-list-empty">
             <p className="auth-muted">保存したシフト表はまだありません。</p>
-            <Link className="btn-primary shift-list-empty__action" to="/shifts/new">
+            <Link
+              className="btn-primary shift-list-empty__action"
+              to="/shifts/new"
+              state={{ freshWizard: true }}
+            >
               新規シフト表作成
             </Link>
           </div>

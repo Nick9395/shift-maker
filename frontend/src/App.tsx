@@ -6,6 +6,7 @@ import { EditShiftLayout } from "./pages/EditShiftLayout";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
+import { NewShiftCountsPage } from "./pages/NewShiftCountsPage";
 import { NewShiftDutiesPage } from "./pages/NewShiftDutiesPage";
 import { NewShiftLayout } from "./pages/NewShiftLayout";
 import { NewShiftPage } from "./pages/NewShiftPage";
@@ -53,12 +54,14 @@ function App() {
               <Route index element={<NewShiftPage />} />
               <Route path="staff" element={<NewShiftStaffPage />} />
               <Route path="duties" element={<NewShiftDutiesPage />} />
+              <Route path="shift-counts" element={<NewShiftCountsPage />} />
               <Route path="sheet" element={<NewShiftSheetPage />} />
             </Route>
             <Route path="/shifts/:shiftId" element={<EditShiftLayout />}>
               <Route index element={<NewShiftPage />} />
               <Route path="staff" element={<NewShiftStaffPage />} />
               <Route path="duties" element={<NewShiftDutiesPage />} />
+              <Route path="shift-counts" element={<NewShiftCountsPage />} />
               <Route path="sheet" element={<NewShiftSheetPage />} />
             </Route>
           </Route>

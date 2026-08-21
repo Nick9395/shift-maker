@@ -7,6 +7,7 @@ import { AppShell } from "../components/AppShell";
 import { FlashToast, useFlash } from "../components/FlashToast";
 import { RowReorderButtons } from "../components/RowReorderButtons";
 import { moveItem } from "../lib/moveItem";
+import { useSettingsReturnTo } from "../lib/settingsReturnTo";
 import {
   createEmptyStaff,
   MAX_SHIFT_STAFF,
@@ -36,6 +37,7 @@ function initialRows(staffs: StaffMaster[]): StaffMaster[] {
 /** 職員マスタを登録する */
 export function StaffSettingsPage() {
   const navigate = useNavigate();
+  const returnTo = useSettingsReturnTo();
   const { token } = useAuth();
   const [rows, setRows] = useState<StaffMaster[]>(() => [createEmptyStaff()]);
   const [error, setError] = useState<string | null>(null);
@@ -142,7 +144,6 @@ export function StaffSettingsPage() {
     <AppShell>
       <FlashToast message={flashMessage} />
       <div className="shift-form-page shift-form-page--wide">
-        <h2>職員を登録する</h2>
         {loading ? <p className="auth-muted">読み込み中...</p> : null}
         {loading ? null : (
           <form
@@ -226,18 +227,10 @@ export function StaffSettingsPage() {
               <button
                 type="button"
                 className="btn-secondary"
-                onClick={() => navigate("/settings")}
+                onClick={() => navigate(returnTo ?? "/settings")}
                 disabled={saving}
               >
-                もどる
-              </button>
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={() => navigate("/shifts")}
-                disabled={saving}
-              >
-                シフト一覧へ
+                {returnTo ? "編集画面にもどる" : "もどる"}
               </button>
             </div>
           </form>

@@ -92,7 +92,6 @@ export function AccountSettingsPage() {
     <AppShell>
       <FlashToast message={flashMessage} />
       <div className="shift-form-page">
-        <h2>アカウント設定</h2>
         <form className="shift-form" onSubmit={handleSubmit} noValidate>
           <label>
             ユーザー名

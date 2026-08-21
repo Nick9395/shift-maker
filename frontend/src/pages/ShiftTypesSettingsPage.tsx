@@ -7,6 +7,7 @@ import { AppShell } from "../components/AppShell";
 import { FlashToast, useFlash } from "../components/FlashToast";
 import { RowReorderButtons } from "../components/RowReorderButtons";
 import { moveItem } from "../lib/moveItem";
+import { useSettingsReturnTo } from "../lib/settingsReturnTo";
 import {
   createEmptyShiftType,
   isValidShiftTypeAbbr,
@@ -187,9 +188,10 @@ function IconColorField({
   );
 }
 
-/** シフトの種類を登録する */
+/** シフト種別を登録する */
 export function ShiftTypesSettingsPage() {
   const navigate = useNavigate();
+  const returnTo = useSettingsReturnTo();
   const { token } = useAuth();
   const [rows, setRows] = useState<ShiftTypeMaster[]>(() => [
     createEmptyShiftType(),
@@ -309,7 +311,6 @@ export function ShiftTypesSettingsPage() {
     <AppShell>
       <FlashToast message={flashMessage} />
       <div className="shift-form-page shift-form-page--wide shift-form-page--types">
-        <h2>シフトの種類を登録する</h2>
         {loading ? <p className="auth-muted">読み込み中...</p> : null}
         {loading ? null : (
         <form
@@ -469,18 +470,10 @@ export function ShiftTypesSettingsPage() {
             <button
               type="button"
               className="btn-secondary"
-              onClick={() => navigate("/settings")}
+              onClick={() => navigate(returnTo ?? "/settings")}
               disabled={saving}
             >
-              もどる
-            </button>
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={() => navigate("/shifts")}
-              disabled={saving}
-            >
-              シフト一覧へ
+              {returnTo ? "編集画面にもどる" : "もどる"}
             </button>
           </div>
         </form>

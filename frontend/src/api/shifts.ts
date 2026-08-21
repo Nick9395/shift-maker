@@ -44,6 +44,12 @@ export type ShiftDetail = {
     required_count: number;
     shortage_notice: boolean;
   }>;
+  shift_type_counts: Array<{
+    name: string;
+    required_count: number;
+    shortage_notice: boolean;
+    shift_type_client_uuids: string[];
+  }>;
   plans: Array<{ date: string; body: string }>;
   locked_shift_type_uuids: string[];
   entries: Array<{
@@ -106,6 +112,17 @@ export function toShiftSaveBody(
         required_count: row.requiredCount.trim() === "" ? 0 : Number(row.requiredCount),
         shortage_notice: row.shortageNotice,
       })),
+    shift_type_counts: (draft.shiftCounts ?? [])
+      .map((row) => ({
+        name: row.name.trim(),
+        required_count:
+          row.requiredCount.trim() === "" ? 0 : Number(row.requiredCount),
+        shortage_notice: row.shortageNotice,
+        shift_type_client_uuids: row.shiftTypeIds
+          .map((id) => id.trim())
+          .filter(Boolean),
+      }))
+      .filter((row) => row.shift_type_client_uuids.length > 0),
     plans,
     locked_shift_type_uuids: sheet.lockedShiftTypeIds,
     entries,
@@ -146,6 +163,16 @@ export function draftFromShiftDetail(shift: ShiftDetail): NewShiftDraft {
       dutyId: row.role_name,
       overlapCount: row.overlap_count,
       priority: row.priority,
+      requiredCount: String(row.required_count),
+      shortageNotice: row.shortage_notice,
+    })),
+    shiftCounts: (shift.shift_type_counts ?? []).map((row) => ({
+      id: crypto.randomUUID(),
+      name: row.name,
+      shiftTypeIds:
+        row.shift_type_client_uuids.length > 0
+          ? row.shift_type_client_uuids
+          : [""],
       requiredCount: String(row.required_count),
       shortageNotice: row.shortage_notice,
     })),

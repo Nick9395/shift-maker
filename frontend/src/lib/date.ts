@@ -20,12 +20,6 @@ export function formatJaDate(iso: string): string {
   return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
 }
 
-/** 画面表示用（例: 2026年8月） */
-export function formatJaYearMonth(iso: string): string {
-  const date = fromIsoDate(iso);
-  return `${date.getFullYear()}年${date.getMonth() + 1}月`;
-}
-
 const WEEKDAYS_JA = ["日", "月", "火", "水", "木", "金", "土"] as const;
 
 /** 曜日（日〜土） */
